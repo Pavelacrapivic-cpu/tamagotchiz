@@ -1,0 +1,1147 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Магический Кактус</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            touch-action: manipulation;
+        }
+
+        /* Предупреждение для десктопа */
+        .desktop-warning {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 20px;
+            z-index: 10000;
+            flex-direction: column;
+        }
+
+        .desktop-warning h1 {
+            font-size: 24px;
+            margin-bottom: 20px;
+        }
+
+        .desktop-warning p {
+            font-size: 16px;
+            margin-bottom: 10px;
+            opacity: 0.9;
+        }
+
+        @media (min-width: 768px) {
+            .game-container {
+                display: none;
+            }
+
+            .desktop-warning {
+                display: flex;
+            }
+        }
+
+        .game-container {
+            position: relative;
+            width: 100%;
+            max-width: 500px;
+            height: 100vh;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            overflow: hidden;
+        }
+
+        /* Сцены с разными локациями */
+        .scene {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            transition: all 1s ease;
+        }
+
+        /* Стили для фоновых картинок локаций */
+        .location-bg {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            transition: opacity 0.5s ease;
+        }
+
+        /* Затемнение для лучшей видимости кактуса */
+        .location-overlay {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.1);
+            pointer-events: none;
+        }
+
+        /* Прогресс бар уровня */
+        .level-container {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 100;
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 20px;
+            padding: 12px 20px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            text-align: center;
+            min-width: 200px;
+        }
+
+        .level-info {
+            color: white;
+            font-size: 14px;
+            margin-bottom: 5px;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #ff6b6b, #667eea);
+            border-radius: 4px;
+            transition: width 0.3s ease;
+            width: 0%;
+        }
+
+        /* Статистика пузырей */
+        .bubbles-container {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 20;
+            color: white;
+            text-shadow: 0 2px 8px rgba(0, 0, 0, 0.7);
+            background: rgba(0, 0, 0, 0.3);
+            padding: 12px 16px;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .bubbles-count {
+            font-size: 16px;
+            font-weight: bold;
+            margin-bottom: 4px;
+        }
+
+        .per-tap {
+            font-size: 12px;
+            opacity: 0.9;
+        }
+
+        /* Кнопка магазина */
+        .shop-button {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            z-index: 50;
+        }
+
+        .button {
+            width: 180px;
+            height: 40px;
+            background-image: linear-gradient(rgb(214, 202, 254), rgb(158, 129, 254));
+            border: none;
+            border-radius: 50px;
+            color: rgb(255, 255, 255);
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+            cursor: pointer;
+            box-shadow: 1px 3px 0px rgb(139, 113, 255);
+            transition-duration: .3s;
+        }
+
+        .cartIcon {
+            width: 14px;
+            height: fit-content;
+        }
+
+        .cartIcon path {
+            fill: white;
+        }
+
+        .button:active {
+            transform: translate(2px, 0px);
+            box-shadow: 0px 1px 0px rgb(139, 113, 255);
+            padding-bottom: 1px;
+        }
+
+        /* Кактус */
+        .cactus-container {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 10;
+            cursor: pointer;
+            transition: transform 0.1s ease;
+            user-select: none;
+            filter: drop-shadow(0 5px 15px rgba(0, 0, 0, 0.5));
+        }
+
+        .cactus {
+            position: relative;
+            width: 140px;
+            height: 220px;
+        }
+
+        .cactus-body {
+            position: absolute;
+            width: 100px;
+            height: 180px;
+            background: linear-gradient(45deg, #2d5a27 0%, #4a7c45 30%, #5d9358 70%, #4a7c45 100%);
+            border-radius: 45px 45px 40px 40px;
+            left: 20px;
+            top: 20px;
+            box-shadow:
+                inset -8px -8px 12px rgba(0, 0, 0, 0.4),
+                inset 6px 6px 12px rgba(255, 255, 255, 0.3),
+                0 0 20px rgba(77, 175, 67, 0.3);
+            border: 2px solid rgba(45, 90, 39, 0.8);
+        }
+
+        .cactus-ribs {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border-radius: inherit;
+            background:
+                repeating-linear-gradient(90deg,
+                    transparent,
+                    transparent 8px,
+                    rgba(45, 90, 39, 0.4) 8px,
+                    rgba(45, 90, 39, 0.4) 10px);
+        }
+
+        .cactus-arm {
+            position: absolute;
+            background: linear-gradient(45deg, #2d5a27 0%, #4a7c45 30%, #5d9358 70%, #4a7c45 100%);
+            border-radius: 25px;
+            box-shadow:
+                inset -5px -5px 8px rgba(0, 0, 0, 0.3),
+                inset 4px 4px 8px rgba(255, 255, 255, 0.2),
+                0 0 10px rgba(77, 175, 67, 0.2);
+            border: 1px solid rgba(45, 90, 39, 0.6);
+            z-index: -1;
+        }
+
+        .arm-left {
+            width: 70px;
+            height: 50px;
+            top: 70px;
+            left: -15px;
+            transform: rotate(-25deg);
+            border-radius: 25px 25px 10px 25px;
+        }
+
+        .arm-right {
+            width: 65px;
+            height: 45px;
+            top: 90px;
+            right: -10px;
+            transform: rotate(20deg);
+            border-radius: 25px 25px 25px 10px;
+        }
+
+        .arm-left::before,
+        .arm-right::before {
+            content: '';
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border-radius: inherit;
+            background:
+                repeating-linear-gradient(90deg,
+                    transparent,
+                    transparent 6px,
+                    rgba(45, 90, 39, 0.3) 6px,
+                    rgba(45, 90, 39, 0.3) 8px);
+        }
+
+        .cactus-face {
+            position: absolute;
+            top: 100px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 2;
+        }
+
+        .eyes {
+            display: flex;
+            gap: 24px;
+            margin-bottom: 10px;
+        }
+
+        .eye {
+            width: 18px;
+            height: 18px;
+            background: radial-gradient(circle at 30% 30%, #1a1a1a, #000);
+            border-radius: 50%;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+            transition: all 0.2s ease;
+        }
+
+        .eye::after {
+            content: '';
+            position: absolute;
+            top: 4px;
+            left: 4px;
+            width: 7px;
+            height: 7px;
+            background: radial-gradient(circle at 30% 30%, #ffffff, #cccccc);
+            border-radius: 50%;
+        }
+
+        .mouth {
+            width: 28px;
+            height: 12px;
+            background: #1a1a1a;
+            border-radius: 0 0 14px 14px;
+            margin: 0 auto;
+            transition: all 0.1s ease;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        /* Скины */
+        .cactus-hat {
+            position: absolute;
+            top: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60px;
+            height: 25px;
+            background: #ff6b6b;
+            border-radius: 50% 50% 0 0;
+            z-index: 3;
+        }
+
+        .cactus-glasses {
+            position: absolute;
+            top: 95px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 3;
+        }
+
+        .glasses-frame {
+            width: 50px;
+            height: 20px;
+            background: #2c3e50;
+            border-radius: 10px;
+            position: relative;
+        }
+
+        .glasses-frame::before,
+        .glasses-frame::after {
+            content: '';
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #2c3e50;
+            border-radius: 50%;
+            background: rgba(116, 185, 255, 0.3);
+        }
+
+        .glasses-frame::before {
+            left: -5px;
+        }
+
+        .glasses-frame::after {
+            right: -5px;
+        }
+
+        .cactus-scarf {
+            position: absolute;
+            top: 150px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 40px;
+            height: 20px;
+            background: linear-gradient(45deg, #ff6b6b, #ff8e8e);
+            border-radius: 5px;
+            z-index: 3;
+        }
+
+        /* Пузыри */
+        .bubble {
+            position: absolute;
+            background: radial-gradient(circle at 30% 30%,
+                    rgba(102, 126, 234, 0.9),
+                    rgba(118, 75, 162, 0.6));
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 5;
+            animation: floatUp 2.5s ease-out forwards;
+            box-shadow:
+                0 0 25px rgba(102, 126, 234, 0.6),
+                inset 0 0 15px rgba(255, 255, 255, 0.4);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+        }
+
+        @keyframes floatUp {
+            0% {
+                transform: translateY(0) scale(0.4) rotate(0deg);
+                opacity: 1;
+            }
+
+            100% {
+                transform: translateY(-150px) scale(1.4) rotate(180deg);
+                opacity: 0;
+            }
+        }
+
+        /* Анимации клика */
+        .click-effect {
+            position: absolute;
+            width: 50px;
+            height: 50px;
+            background: radial-gradient(circle,
+                    rgba(255, 255, 255, 0.9) 0%,
+                    rgba(255, 255, 255, 0) 70%);
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 15;
+            animation: clickRipple 0.6s ease-out forwards;
+        }
+
+        @keyframes clickRipple {
+            0% {
+                transform: scale(0.5);
+                opacity: 1;
+            }
+
+            100% {
+                transform: scale(2.5);
+                opacity: 0;
+            }
+        }
+
+        /* Магазин */
+        .shop-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            display: none;
+            backdrop-filter: blur(5px);
+        }
+
+        .shop-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            border-radius: 20px;
+            width: 90%;
+            max-width: 400px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .shop-header {
+            color: white;
+            text-align: center;
+            margin-bottom: 20px;
+            font-size: 24px;
+        }
+
+        .shop-category {
+            margin-bottom: 20px;
+        }
+
+        .category-title {
+            color: white;
+            margin-bottom: 10px;
+            font-size: 18px;
+        }
+
+        .shop-item {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 10px;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .shop-item:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateX(5px);
+        }
+
+        .shop-item.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .item-name {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .item-description {
+            font-size: 12px;
+            opacity: 0.8;
+            margin-bottom: 8px;
+        }
+
+        .item-price {
+            font-size: 14px;
+            color: #ffd700;
+        }
+
+        /* Активные бусты */
+        .active-boosts {
+            position: absolute;
+            bottom: 70px;
+            left: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            z-index: 25;
+        }
+
+        .boost-indicator {
+            background: rgba(255, 255, 255, 0.9);
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Предупреждение для десктопа -->
+    <div class="desktop-warning">
+        <h1>📱 Только для мобильных!</h1>
+        <p>Эта игра создана для мобильных устройств</p>
+        <p>Пожалуйста, откройте на смартфоне или планшете</p>
+        <p>📱 → Откройте в мобильном браузере</p>
+    </div>
+
+    <div class="game-container">
+        <!-- Прогресс бар уровня -->
+        <div class="level-container">
+            <div class="level-info">
+                Уровень <span id="currentLevel">1</span>:
+                <span id="levelName">Глубокая пустыня</span>
+            </div>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+            <div style="color: white; font-size: 10px; margin-top: 5px;">
+                <span id="currentProgress">0</span>/<span id="nextLevelRequirement">50</span>
+            </div>
+        </div>
+
+        <!-- Статистика пузырей -->
+        <div class="bubbles-container">
+            <div class="bubbles-count" id="bubblesCount">0 🫧</div>
+            <div class="per-tap">За тап: <span id="perTap">1</span></div>
+        </div>
+
+        <!-- Активные бусты -->
+        <div class="active-boosts" id="activeBoosts"></div>
+
+        <!-- Кнопка магазина -->
+        <div class="shop-button">
+            <button class="button" onclick="openShop()">
+                <svg class="cartIcon" viewBox="0 0 576 512">
+                    <path
+                        d="M0 24C0 10.7 10.7 0 24 0H69.5c22 0 41.5 12.8 50.6 32h411c26.3 0 45.5 25 38.6 50.4l-41 152.3c-8.5 31.4-37 53.3-69.5 53.3H170.7l5.4 28.5c2.2 11.3 12.1 19.5 23.6 19.5H488c13.3 0 24 10.7 24 24s-10.7 24-24 24H199.7c-34.6 0-64.3-24.6-70.7-58.5L77.4 54.5c-.7-3.8-4-6.5-7.9-6.5H24C10.7 48 0 37.3 0 24zM128 464a48 48 0 1 1 96 0 48 48 0 1 1 -96 0zm336-48a48 48 0 1 1 0 96 48 48 0 1 1 0-96z">
+                    </path>
+                </svg>
+                Магазин
+            </button>
+        </div>
+
+        <!-- Сцена с локациями -->
+        <div class="scene" id="scene">
+            <div class="location-bg" id="locationBg"></div>
+            <div class="location-overlay"></div>
+
+            <!-- Кактус -->
+            <div class="cactus-container" id="cactus">
+                <div class="cactus">
+                    <div class="cactus-body">
+                        <div class="cactus-ribs"></div>
+                    </div>
+                    <div class="cactus-arm arm-left"></div>
+                    <div class="cactus-arm arm-right"></div>
+                    <div class="cactus-face">
+                        <div class="eyes">
+                            <div class="eye"></div>
+                            <div class="eye"></div>
+                        </div>
+                        <div class="mouth"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Магазин -->
+        <div class="shop-overlay" id="shopOverlay">
+            <div class="shop-content">
+                <h2 class="shop-header">Магазин улучшений</h2>
+
+                <div class="shop-category">
+                    <h3 class="category-title">📈 Усилители тапов</h3>
+                    <div class="shop-item" onclick="buyBoost('tap1')">
+                        <div class="item-name">Малый усилитель</div>
+                        <div class="item-description">+1 пузырь за тап</div>
+                        <div class="item-price">💎 50 пузырей</div>
+                    </div>
+                    <div class="shop-item" onclick="buyBoost('tap3')">
+                        <div class="item-name">Средний усилитель</div>
+                        <div class="item-description">+3 пузыря за тап</div>
+                        <div class="item-price">💎 200 пузырей</div>
+                    </div>
+                    <div class="shop-item" onclick="buyBoost('tap5')">
+                        <div class="item-name">Большой усилитель</div>
+                        <div class="item-description">+5 пузырей за тап</div>
+                        <div class="item-price">💎 800 пузырей</div>
+                    </div>
+                </div>
+
+                <div class="shop-category">
+                    <h3 class="category-title">🤖 Авто-таперы</h3>
+                    <div class="shop-item" onclick="buyBoost('auto5')">
+                        <div class="item-name">Мини-тапер</div>
+                        <div class="item-description">Авто-тапы 5 минут</div>
+                        <div class="item-price">💎 150 пузырей</div>
+                    </div>
+                    <div class="shop-item" onclick="buyBoost('auto15')">
+                        <div class="item-name">Стандартный тапер</div>
+                        <div class="item-description">Авто-тапы 15 минут</div>
+                        <div class="item-price">💎 600 пузырей</div>
+                    </div>
+                    <div class="shop-item" onclick="buyBoost('auto30')">
+                        <div class="item-name">Профессиональный тапер</div>
+                        <div class="item-description">Авто-тапы 30 минут</div>
+                        <div class="item-price">💎 2000 пузырей</div>
+                    </div>
+                </div>
+
+                <div class="shop-category">
+                    <h3 class="category-title">🎭 Скины</h3>
+                    <div class="shop-item" onclick="buySkin('hat')">
+                        <div class="item-name">Красная кепка</div>
+                        <div class="item-description">Стильный головной убор</div>
+                        <div class="item-price">💎 300 пузырей</div>
+                    </div>
+                    <div class="shop-item" onclick="buySkin('glasses')">
+                        <div class="item-name">Крутые очки</div>
+                        <div class="item-description">Защита от солнца</div>
+                        <div class="item-price">💎 500 пузырей</div>
+                    </div>
+                    <div class="shop-item" onclick="buySkin('scarf')">
+                        <div class="item-name">Теплый шарфик</div>
+                        <div class="item-description">Для прохладных вечеров</div>
+                        <div class="item-price">💎 400 пузырей</div>
+                    </div>
+                </div>
+
+                <button onclick="closeShop()"
+                    style="width:100%; padding:12px; margin-top:20px; background:#ff6b6b; color:white; border:none; border-radius:10px; cursor:pointer; font-weight:600;">
+                    Закрыть
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class MagicCactusGame {
+            constructor() {
+                this.bubbles = 0;
+                this.level = 1;
+                this.tapPower = 1;
+                this.progress = 0;
+
+                this.boosts = {
+                    tap: 0,
+                    autoTapper: null
+                };
+
+                this.skins = {
+                    hat: false,
+                    glasses: false,
+                    scarf: false
+                };
+
+                // Обновленный массив локаций (10 вместо 12)
+                this.locations = [
+                    "Глубокая пустыня",
+                    "Пустынный оазис",
+                    "Горная тропа",
+                    "Сельская дорога",
+                    "Окраина города",
+                    "Городской парк",
+                    "Автобусная остановка",
+                    "Двор многоэтажки",
+                    "Подъезд",
+                    "Квартира"
+                ];
+
+                // Пути к картинкам локаций (твои названия файлов)
+                this.locationImages = [
+                    "01-пустыня-фон.jpg",
+                    "02-oasis-bg.jpg",
+                    "03-горы-на-заднем-плане.jpg",
+                    "04-проселочная дорога-bg.jpg",
+                    "05-окраины-города-bg.jpg",
+                    "06-городской-парк-bg.jpg",
+                    "07-автобусная-остановка-bg.jpg",
+                    "08-двор-на-заднем-плане.jpg",
+                    "09-входной-фон.jpg",
+                    "12-квартира-bg.jpg"
+                ];
+
+                this.init();
+            }
+
+            init() {
+                this.cactus = document.getElementById('cactus');
+                this.locationBg = document.getElementById('locationBg');
+                this.bubblesCount = document.getElementById('bubblesCount');
+                this.progressFill = document.getElementById('progressFill');
+                this.currentLevel = document.getElementById('currentLevel');
+                this.levelName = document.getElementById('levelName');
+                this.currentProgress = document.getElementById('currentProgress');
+                this.nextLevelRequirement = document.getElementById('nextLevelRequirement');
+                this.perTap = document.getElementById('perTap');
+                this.activeBoosts = document.getElementById('activeBoosts');
+                this.scene = document.getElementById('scene');
+
+                this.setupEventListeners();
+                this.loadGame();
+                this.updateDisplay();
+                this.updateLocation();
+                this.startAutoTapperCheck();
+            }
+
+            setupEventListeners() {
+                // Исправленные обработчики тапов (без бага)
+                this.cactus.addEventListener('touchstart', (e) => {
+                    if (e.cancelable) e.preventDefault();
+                    const touch = e.touches[0];
+                    this.handleTap(touch.clientX, touch.clientY);
+                }, { passive: false });
+
+                this.cactus.addEventListener('mousedown', (e) => {
+                    e.preventDefault();
+                    this.handleTap(e.clientX, e.clientY);
+                });
+
+                this.cactus.addEventListener('contextmenu', (e) => {
+                    e.preventDefault();
+                });
+            }
+
+            handleTap(clientX, clientY) {
+                this.createClickEffect(clientX, clientY);
+                this.createBubble(clientX, clientY);
+                this.addBubbles(this.tapPower + this.boosts.tap);
+                this.animateClick();
+            }
+
+            createClickEffect(clientX, clientY) {
+                const effect = document.createElement('div');
+                effect.className = 'click-effect';
+
+                effect.style.left = (clientX - 25) + 'px';
+                effect.style.top = (clientY - 25) + 'px';
+
+                document.querySelector('.game-container').appendChild(effect);
+
+                setTimeout(() => {
+                    effect.remove();
+                }, 600);
+            }
+
+            createBubble(clientX, clientY) {
+                const bubble = document.createElement('div');
+                bubble.className = 'bubble';
+
+                const size = Math.random() * 30 + 20;
+                bubble.style.width = size + 'px';
+                bubble.style.height = size + 'px';
+
+                bubble.style.left = (clientX - size / 2) + 'px';
+                bubble.style.top = (clientY - size / 2) + 'px';
+
+                document.querySelector('.game-container').appendChild(bubble);
+
+                setTimeout(() => {
+                    if (bubble.parentNode) {
+                        bubble.remove();
+                    }
+                }, 2500);
+            }
+
+            addBubbles(amount) {
+                this.bubbles += amount;
+                this.progress += amount;
+                this.updateDisplay();
+                this.checkLevelUp();
+                this.saveGame();
+            }
+
+            updateDisplay() {
+                this.bubblesCount.textContent = `${this.bubbles} 🫧`;
+                this.perTap.textContent = this.tapPower + this.boosts.tap;
+
+                const progressPercent = (this.progress / this.getLevelRequirement()) * 100;
+                this.progressFill.style.width = `${progressPercent}%`;
+
+                this.currentLevel.textContent = this.level;
+                this.levelName.textContent = this.locations[this.level - 1] || 'Финал';
+                this.currentProgress.textContent = this.progress;
+                this.nextLevelRequirement.textContent = this.getLevelRequirement();
+
+                this.updateActiveBoosts();
+            }
+
+            getLevelRequirement() {
+                return Math.floor(50 * Math.pow(1.5, this.level - 1));
+            }
+
+            checkLevelUp() {
+                const requirement = this.getLevelRequirement();
+                if (this.progress >= requirement && this.level < this.locations.length) {
+                    this.level++;
+                    this.progress = 0;
+                    this.onLevelUp();
+                }
+            }
+
+            onLevelUp() {
+                this.updateLocation();
+                this.saveGame();
+
+                // Анимация перехода уровня
+                this.scene.style.opacity = '0.7';
+                setTimeout(() => {
+                    this.scene.style.opacity = '1';
+                }, 300);
+            }
+
+            updateLocation() {
+                const currentLocationIndex = Math.min(this.level - 1, this.locations.length - 1);
+                const imagePath = this.locationImages[currentLocationIndex];
+
+                if (imagePath) {
+                    this.locationBg.style.backgroundImage = `url('${imagePath}')`;
+
+                    // Адаптация кактуса под локацию
+                    this.adaptCactusToLocation(currentLocationIndex);
+                }
+            }
+
+            adaptCactusToLocation(locationIndex) {
+                // Сбрасываем все адаптации
+                this.cactus.style.filter = 'drop-shadow(0 5px 15px rgba(0, 0, 0, 0.5))';
+                this.cactus.style.transform = 'translate(-50%, -50%) scale(1)';
+
+                // Адаптации для разных типов локаций
+                switch (locationIndex) {
+                    case 0: // Пустыня
+                        this.cactus.style.filter = 'drop-shadow(0 8px 25px rgba(0, 0, 0, 0.6)) brightness(1.1)';
+                        break;
+                    case 1: // Оазис
+                        this.cactus.style.filter = 'drop-shadow(0 5px 20px rgba(0, 0, 0, 0.4)) hue-rotate(10deg)';
+                        break;
+                    case 2: // Горы
+                        this.cactus.style.filter = 'drop-shadow(0 10px 30px rgba(0, 0, 0, 0.7)) contrast(1.2)';
+                        break;
+                    case 5: // Парк
+                        this.cactus.style.filter = 'drop-shadow(0 4px 15px rgba(0, 0, 0, 0.3)) saturate(1.3)';
+                        break;
+                    case 8: // Подъезд
+                    case 9: // Квартира
+                        this.cactus.style.transform = 'translate(-50%, -50%) scale(0.9)';
+                        this.cactus.style.filter = 'drop-shadow(0 3px 10px rgba(0, 0, 0, 0.4))';
+                        break;
+                }
+            }
+
+            // Система улучшений
+            buyBoost(type) {
+                const prices = {
+                    'tap1': 50,
+                    'tap3': 200,
+                    'tap5': 800,
+                    'auto5': 150,
+                    'auto15': 600,
+                    'auto30': 2000
+                };
+
+                const price = prices[type];
+                if (this.bubbles >= price) {
+                    this.bubbles -= price;
+
+                    if (type.startsWith('tap')) {
+                        const power = parseInt(type.replace('tap', ''));
+                        this.boosts.tap += power;
+                    } else if (type.startsWith('auto')) {
+                        const minutes = parseInt(type.replace('auto', ''));
+                        this.activateAutoTapper(minutes);
+                    }
+
+                    this.updateDisplay();
+                    this.saveGame();
+                    this.updateShopItems();
+                }
+            }
+
+            activateAutoTapper(minutes) {
+                const endTime = Date.now() + minutes * 60 * 1000;
+                this.boosts.autoTapper = endTime;
+                this.updateActiveBoosts();
+            }
+
+            updateAutoTapper() {
+                if (this.boosts.autoTapper) {
+                    const now = Date.now();
+                    const timeLeft = this.boosts.autoTapper - now;
+
+                    if (timeLeft > 0) {
+                        // Авто-тап каждые 2 секунды
+                        if (Date.now() % 2000 < 100) {
+                            this.simulateTap();
+                        }
+                    } else {
+                        this.boosts.autoTapper = null;
+                        this.updateActiveBoosts();
+                    }
+                }
+            }
+
+            simulateTap() {
+                const rect = this.cactus.getBoundingClientRect();
+                const x = rect.left + rect.width / 2 + (Math.random() - 0.5) * 50;
+                const y = rect.top + rect.height / 2 + (Math.random() - 0.5) * 50;
+
+                this.createBubble(x, y);
+                this.addBubbles(this.tapPower + this.boosts.tap);
+            }
+
+            startAutoTapperCheck() {
+                setInterval(() => {
+                    this.updateAutoTapper();
+                }, 1000);
+            }
+
+            updateActiveBoosts() {
+                this.activeBoosts.innerHTML = '';
+
+                if (this.boosts.tap > 0) {
+                    const boost = document.createElement('div');
+                    boost.className = 'boost-indicator';
+                    boost.textContent = `+${this.boosts.tap} за тап`;
+                    this.activeBoosts.appendChild(boost);
+                }
+
+                if (this.boosts.autoTapper) {
+                    const timeLeft = Math.ceil((this.boosts.autoTapper - Date.now()) / 60000);
+                    const boost = document.createElement('div');
+                    boost.className = 'boost-indicator';
+                    boost.textContent = `🤖 Авто-тапер (${timeLeft}м)`;
+                    this.activeBoosts.appendChild(boost);
+                }
+            }
+
+            // Система скинов
+            buySkin(skinType) {
+                const prices = {
+                    'hat': 300,
+                    'glasses': 500,
+                    'scarf': 400
+                };
+
+                const price = prices[skinType];
+                if (this.bubbles >= price && !this.skins[skinType]) {
+                    this.bubbles -= price;
+                    this.skins[skinType] = true;
+                    this.applySkin(skinType);
+                    this.updateDisplay();
+                    this.saveGame();
+                    this.updateShopItems();
+                }
+            }
+
+            applySkin(skinType) {
+                const cactus = this.cactus.querySelector('.cactus');
+
+                if (skinType === 'hat' && !cactus.querySelector('.cactus-hat')) {
+                    const hat = document.createElement('div');
+                    hat.className = 'cactus-hat';
+                    cactus.appendChild(hat);
+                }
+
+                if (skinType === 'glasses' && !cactus.querySelector('.cactus-glasses')) {
+                    const glasses = document.createElement('div');
+                    glasses.className = 'cactus-glasses';
+                    glasses.innerHTML = '<div class="glasses-frame"></div>';
+                    cactus.appendChild(glasses);
+                }
+
+                if (skinType === 'scarf' && !cactus.querySelector('.cactus-scarf')) {
+                    const scarf = document.createElement('div');
+                    scarf.className = 'cactus-scarf';
+                    cactus.appendChild(scarf);
+                }
+            }
+
+            updateShopItems() {
+                // Можно добавить логику обновления доступности предметов в магазине
+                const items = document.querySelectorAll('.shop-item');
+                items.forEach(item => {
+                    const priceText = item.querySelector('.item-price').textContent;
+                    const price = parseInt(priceText.match(/\d+/)[0]);
+
+                    if (this.bubbles < price) {
+                        item.style.opacity = '0.6';
+                    } else {
+                        item.style.opacity = '1';
+                    }
+                });
+            }
+
+            animateClick() {
+                this.cactus.style.transform = 'translate(-50%, -50%) scale(0.95)';
+                setTimeout(() => {
+                    this.cactus.style.transform = 'translate(-50%, -50%) scale(1)';
+                }, 100);
+            }
+
+            saveGame() {
+                const gameData = {
+                    bubbles: this.bubbles,
+                    level: this.level,
+                    progress: this.progress,
+                    boosts: this.boosts,
+                    skins: this.skins
+                };
+                localStorage.setItem('magicCactus', JSON.stringify(gameData));
+            }
+
+            loadGame() {
+                const saved = localStorage.getItem('magicCactus');
+                if (saved) {
+                    const gameData = JSON.parse(saved);
+                    this.bubbles = gameData.bubbles || 0;
+                    this.level = gameData.level || 1;
+                    this.progress = gameData.progress || 0;
+                    this.boosts = gameData.boosts || { tap: 0, autoTapper: null };
+                    this.skins = gameData.skins || { hat: false, glasses: false, scarf: false };
+
+                    Object.keys(this.skins).forEach(skin => {
+                        if (this.skins[skin]) {
+                            this.applySkin(skin);
+                        }
+                    });
+                }
+            }
+        }
+
+        // Глобальные функции
+        let game;
+
+        function openShop() {
+            document.getElementById('shopOverlay').style.display = 'block';
+            if (game) game.updateShopItems();
+        }
+
+        function closeShop() {
+            document.getElementById('shopOverlay').style.display = 'none';
+        }
+
+        function buyBoost(type) {
+            if (game) game.buyBoost(type);
+        }
+
+        function buySkin(skinType) {
+            if (game) game.buySkin(skinType);
+        }
+
+        // Инициализация игры
+        document.addEventListener('DOMContentLoaded', () => {
+            game = new MagicCactusGame();
+        });
+
+        // Закрытие магазина по клику вне его
+        document.getElementById('shopOverlay').addEventListener('click', (e) => {
+            if (e.target === document.getElementById('shopOverlay')) {
+                closeShop();
+            }
+        });
+
+        // Предотвращение масштабирования на тач-устройствах
+        document.addEventListener('touchstart', function (e) {
+            if (e.touches.length > 1) {
+                e.preventDefault();
+            }
+        }, { passive: false });
+
+        let lastTouchEnd = 0;
+        document.addEventListener('touchend', function (e) {
+            const now = (new Date()).getTime();
+            if (now - lastTouchEnd <= 300) {
+                e.preventDefault();
+            }
+            lastTouchEnd = now;
+        }, false);
+    </script>
+</body>
+
+</html>
