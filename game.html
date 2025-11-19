@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>🐲 Мой Дракоша</title>
+    <meta charset="UTF-8">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'Arial', sans-serif;
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        #container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        #ui {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(255, 255, 255, 0.9);
+            padding: 20px;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            z-index: 100;
+            min-width: 400px;
+            text-align: center;
+        }
+
+        button {
+            background: linear-gradient(45deg, #FF6B6B, #4ECDC4);
+            border: none;
+            padding: 15px 25px;
+            margin: 5px;
+            border-radius: 12px;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        #loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 24px;
+            z-index: 1000;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="loading">🔄 Загружаем дракошу...</div>
+    <div id="container"></div>
+
+    <div id="ui">
+        <button onclick="feed()">🍖 Покормить</button>
+        <button onclick="play()">🎮 Играть</button>
+        <button onclick="sleep()">💤 Спать</button>
+        <button onclick="pet()">❤️ Погладить</button>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+
+    <script>
+        // Переменные
+        let scene, camera, renderer, dragon, mixer, clock;
+        let hunger = 50, happiness = 70, energy = 80;
+
+        // Инициализация
+        function init() {
+            // Сцена
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x87CEEB);
+
+            // Камера
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(0, 1, 5);
+
+            // Рендерер
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.shadowMap.enabled = true;
+            document.getElementById('container').appendChild(renderer.domElement);
+
+            // Освещение
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+            scene.add(ambientLight);
+
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+            directionalLight.position.set(5, 5, 5);
+            directionalLight.castShadow = true;
+            scene.add(directionalLight);
+
+            // Загрузка дракона
+            const loader = new THREE.GLTFLoader();
+
+            // ЗАМЕНИТЕ 'models/dragon.gltf' на ваш путь к файлу!
+            loader.load('models/VGQ6L8BATTZ8Q4OFEHZOIS0VN.gltf', function (gltf) {
+                dragon = gltf.scene;
+
+                // Настройка дракона
+                dragon.scale.set(1, 1, 1);
+                dragon.position.set(0, -1, 0);
+
+                // Включение теней
+                dragon.traverse(function (node) {
+                    if (node.isMesh) {
+                        node.castShadow = true;
+                        node.receiveShadow = true;
+                    }
+                });
+
+                scene.add(dragon);
+
+                // Анимации
+                if (gltf.animations && gltf.animations.length) {
+                    mixer = new THREE.AnimationMixer(dragon);
+                    const action = mixer.clipAction(gltf.animations[0]);
+                    action.play();
+                }
+
+                // Скрываем загрузку
+                document.getElementById('loading').style.display = 'none';
+
+            }, undefined, function (error) {
+                console.error('Ошибка загрузки модели:', error);
+                document.getElementById('loading').innerHTML = '❌ Ошибка загрузки<br>Проверьте путь к файлу';
+            });
+
+            clock = new THREE.Clock();
+
+            // Пол
+            const floorGeometry = new THREE.PlaneGeometry(10, 10);
+            const floorMaterial = new THREE.MeshStandardMaterial({ color: 0x7CB342 });
+            const floor = new THREE.Mesh(floorGeometry, floorMaterial);
+            floor.rotation.x = -Math.PI / 2;
+            floor.receiveShadow = true;
+            scene.add(floor);
+
+            // Обработка ресайза
+            window.addEventListener('resize', onWindowResize);
+
+            // Запуск анимации
+            animate();
+        }
+
+        // Действия с драконом
+        function feed() {
+            hunger = Math.min(100, hunger + 30);
+            energy = Math.max(0, energy - 5);
+            animateAction('feed');
+            updateStats();
+        }
+
+        function play() {
+            happiness = Math.min(100, happiness + 25);
+            energy = Math.max(0, energy - 15);
+            hunger = Math.max(0, hunger - 10);
+            animateAction('play');
+            updateStats();
+        }
+
+        function sleep() {
+            energy = Math.min(100, energy + 40);
+            hunger = Math.max(0, hunger - 15);
+            animateAction('sleep');
+            updateStats();
+        }
+
+        function pet() {
+            happiness = Math.min(100, happiness + 20);
+            animateAction('pet');
+            updateStats();
+        }
+
+        function animateAction(action) {
+            if (mixer) {
+                // Простая анимация реакции
+                dragon.rotation.y += 0.5;
+                setTimeout(() => {
+                    dragon.rotation.y -= 0.5;
+                }, 500);
+            }
+        }
+
+        function updateStats() {
+            console.log(`🍖: ${hunger}%, 😊: ${happiness}%, 💤: ${energy}%`);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            const delta = clock.getDelta();
+            if (mixer) mixer.update(delta);
+
+            // Плавное вращение дракона
+            if (dragon) {
+                dragon.rotation.y += 0.005;
+            }
+
+            renderer.render(scene, camera);
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        // Запуск при загрузке
+        window.addEventListener('DOMContentLoaded', init);
+
+        // Авто-уменьшение характеристик
+        setInterval(() => {
+            hunger = Math.max(0, hunger - 2);
+            happiness = Math.max(0, happiness - 1);
+            energy = Math.max(0, energy - 1);
+            updateStats();
+        }, 10000);
+
+    </script>
+</body>
+
+</html>
