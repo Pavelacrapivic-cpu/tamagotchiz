@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Магический Кактус</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .game-container {
+            position: relative;
+            width: 100%;
+            max-width: 500px;
+            height: 80vh;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            overflow: hidden;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .scene {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .sky {
+            position: absolute;
+            top: 0;
+            width: 100%;
+            height: 60%;
+            background: linear-gradient(180deg, #ff6b6b 0%, #667eea 50%, #764ba2 100%);
+        }
+
+        .desert {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            height: 40%;
+            background: linear-gradient(0deg, #e1b382 0%, #f0d9b5 100%);
+            overflow: hidden;
+        }
+
+        .sand-dunes {
+            position: absolute;
+            bottom: 40%;
+            width: 120%;
+            height: 150px;
+            background: #d4a574;
+            border-radius: 50% 50% 0 0;
+            box-shadow:
+                inset 0 -15px 30px rgba(0, 0, 0, 0.1),
+                0 10px 25px rgba(0, 0, 0, 0.2);
+        }
+
+        .sand-texture {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background-image:
+                radial-gradient(circle at 20% 30%, rgba(255, 255, 255, 0.1) 2px, transparent 2px),
+                radial-gradient(circle at 60% 70%, rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+                radial-gradient(circle at 40% 20%, rgba(0, 0, 0, 0.05) 1px, transparent 1px);
+            background-size: 50px 50px, 30px 30px, 40px 40px;
+        }
+
+        .small-rocks {
+            position: absolute;
+            bottom: 40%;
+            width: 100%;
+            height: 20px;
+        }
+
+        .rock {
+            position: absolute;
+            background: #b08f6d;
+            border-radius: 3px;
+            box-shadow: inset -2px -2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .rock-1 {
+            width: 8px;
+            height: 5px;
+            bottom: 10px;
+            left: 15%;
+        }
+
+        .rock-2 {
+            width: 12px;
+            height: 7px;
+            bottom: 8px;
+            left: 35%;
+        }
+
+        .rock-3 {
+            width: 6px;
+            height: 4px;
+            bottom: 12px;
+            left: 60%;
+        }
+
+        .rock-4 {
+            width: 10px;
+            height: 6px;
+            bottom: 9px;
+            left: 80%;
+        }
+
+        .cactus-container {
+            position: relative;
+            z-index: 10;
+            cursor: pointer;
+            transition: transform 0.1s ease;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+        }
+
+        .cactus {
+            position: relative;
+            width: 140px;
+            height: 220px;
+            filter: drop-shadow(0 5px 15px rgba(0, 0, 0, 0.3));
+        }
+
+        .cactus-body {
+            position: absolute;
+            width: 100px;
+            height: 180px;
+            background:
+                linear-gradient(45deg, #2d5a27 0%, #4a7c45 30%, #5d9358 70%, #4a7c45 100%);
+            border-radius: 45px 45px 40px 40px;
+            left: 20px;
+            top: 20px;
+            box-shadow:
+                inset -8px -8px 12px rgba(0, 0, 0, 0.4),
+                inset 6px 6px 12px rgba(255, 255, 255, 0.3),
+                0 0 20px rgba(77, 175, 67, 0.3);
+            border: 2px solid rgba(45, 90, 39, 0.8);
+        }
+
+        .cactus-ribs {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border-radius: inherit;
+            background:
+                repeating-linear-gradient(90deg,
+                    transparent,
+                    transparent 8px,
+                    rgba(45, 90, 39, 0.4) 8px,
+                    rgba(45, 90, 39, 0.4) 10px);
+        }
+
+        .cactus-arm {
+            position: absolute;
+            background:
+                linear-gradient(45deg, #2d5a27 0%, #4a7c45 30%, #5d9358 70%, #4a7c45 100%);
+            border-radius: 25px;
+            box-shadow:
+                inset -5px -5px 8px rgba(0, 0, 0, 0.3),
+                inset 4px 4px 8px rgba(255, 255, 255, 0.2),
+                0 0 10px rgba(77, 175, 67, 0.2);
+            border: 1px solid rgba(45, 90, 39, 0.6);
+            z-index: -1;
+        }
+
+        .arm-left {
+            width: 70px;
+            height: 50px;
+            top: 70px;
+            left: -15px;
+            transform: rotate(-25deg);
+            border-radius: 25px 25px 10px 25px;
+        }
+
+        .arm-right {
+            width: 65px;
+            height: 45px;
+            top: 90px;
+            right: -10px;
+            transform: rotate(20deg);
+            border-radius: 25px 25px 25px 10px;
+        }
+
+        .arm-left::before,
+        .arm-right::before {
+            content: '';
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border-radius: inherit;
+            background:
+                repeating-linear-gradient(90deg,
+                    transparent,
+                    transparent 6px,
+                    rgba(45, 90, 39, 0.3) 6px,
+                    rgba(45, 90, 39, 0.3) 8px);
+        }
+
+        .cactus-areoles {
+            position: absolute;
+            width: 14px;
+            height: 14px;
+            background: radial-gradient(circle at 30% 30%, #7aa375, #5d9358);
+            border-radius: 50%;
+            box-shadow:
+                inset 0 0 8px rgba(0, 0, 0, 0.4),
+                0 2px 4px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(45, 90, 39, 0.8);
+        }
+
+        .areole-1 {
+            top: 50px;
+            left: 35px;
+        }
+
+        .areole-2 {
+            top: 90px;
+            right: 40px;
+        }
+
+        .areole-3 {
+            top: 130px;
+            left: 30px;
+        }
+
+        .cactus-spines {
+            position: absolute;
+            background: linear-gradient(45deg, #1a3d16, #2d5a27);
+            border-radius: 1px;
+            transform-origin: center;
+        }
+
+        .spine-1 {
+            width: 2px;
+            height: 18px;
+            top: 45px;
+            left: 35px;
+            transform: rotate(45deg);
+        }
+
+        .spine-2 {
+            width: 2px;
+            height: 16px;
+            top: 85px;
+            right: 40px;
+            transform: rotate(-45deg);
+        }
+
+        .spine-3 {
+            width: 2px;
+            height: 14px;
+            top: 125px;
+            left: 30px;
+            transform: rotate(30deg);
+        }
+
+        .spine-4 {
+            width: 2px;
+            height: 12px;
+            top: 50px;
+            left: 25px;
+            transform: rotate(-30deg);
+        }
+
+        .spine-5 {
+            width: 2px;
+            height: 15px;
+            top: 90px;
+            right: 35px;
+            transform: rotate(60deg);
+        }
+
+        .cactus-face {
+            position: absolute;
+            top: 100px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 2;
+        }
+
+        .eyes {
+            display: flex;
+            gap: 24px;
+            margin-bottom: 10px;
+        }
+
+        .eye {
+            width: 18px;
+            height: 18px;
+            background: radial-gradient(circle at 30% 30%, #1a1a1a, #000);
+            border-radius: 50%;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+            transition: all 0.2s ease;
+        }
+
+        .eye::after {
+            content: '';
+            position: absolute;
+            top: 4px;
+            left: 4px;
+            width: 7px;
+            height: 7px;
+            background: radial-gradient(circle at 30% 30%, #ffffff, #cccccc);
+            border-radius: 50%;
+        }
+
+        .mouth {
+            width: 28px;
+            height: 12px;
+            background: #1a1a1a;
+            border-radius: 0 0 14px 14px;
+            margin: 0 auto;
+            transition: all 0.1s ease;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .cactus-container:active {
+            transform: scale(0.98);
+        }
+
+        .cactus-container:active .eye {
+            transform: scale(0.9);
+        }
+
+        .cactus-container:active .mouth {
+            height: 6px;
+            border-radius: 12px;
+            transform: translateY(2px);
+        }
+
+        .magic-glow {
+            position: absolute;
+            width: 160px;
+            height: 160px;
+            background: radial-gradient(circle,
+                    rgba(102, 126, 234, 0.3) 0%,
+                    rgba(118, 75, 162, 0.2) 30%,
+                    rgba(77, 175, 67, 0.4) 50%,
+                    transparent 70%);
+            border-radius: 50%;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: -1;
+            animation: pulse 2s ease-in-out infinite;
+            filter: blur(5px);
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 0.6;
+                transform: translate(-50%, -50%) scale(1);
+            }
+
+            50% {
+                opacity: 0.9;
+                transform: translate(-50%, -50%) scale(1.15);
+            }
+        }
+
+        .bubble {
+            position: absolute;
+            background: radial-gradient(circle at 30% 30%,
+                    rgba(102, 126, 234, 0.9),
+                    rgba(118, 75, 162, 0.6));
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 5;
+            animation: floatUp 2.5s ease-out forwards;
+            box-shadow:
+                0 0 20px rgba(102, 126, 234, 0.5),
+                inset 0 0 10px rgba(255, 255, 255, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        @keyframes floatUp {
+            0% {
+                transform: translateY(0) scale(0.3) rotate(0deg);
+                opacity: 1;
+            }
+
+            100% {
+                transform: translateY(-120px) scale(1.3) rotate(180deg);
+                opacity: 0;
+            }
+        }
+
+        .stats {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 20;
+            color: white;
+            text-shadow: 0 2px 8px rgba(0, 0, 0, 0.7);
+            background: rgba(0, 0, 0, 0.3);
+            padding: 15px;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .bubbles-count {
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .level {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        .stars {
+            position: absolute;
+            width: 100%;
+            height: 60%;
+            top: 0;
+        }
+
+        .star {
+            position: absolute;
+            background: white;
+            border-radius: 50%;
+            animation: twinkle 4s infinite;
+        }
+
+        @keyframes twinkle {
+
+            0%,
+            100% {
+                opacity: 0.2;
+                transform: scale(1);
+            }
+
+            50% {
+                opacity: 0.8;
+                transform: scale(1.1);
+            }
+        }
+
+        .click-effect {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            background: radial-gradient(circle,
+                    rgba(255, 255, 255, 0.8) 0%,
+                    rgba(255, 255, 255, 0) 70%);
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 15;
+            animation: clickRipple 0.6s ease-out forwards;
+        }
+
+        @keyframes clickRipple {
+            0% {
+                transform: scale(0.5);
+                opacity: 1;
+            }
+
+            100% {
+                transform: scale(2);
+                opacity: 0;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="game-container">
+        <div class="scene">
+            <div class="sky">
+                <div class="stars" id="stars"></div>
+            </div>
+            <div class="sand-dunes">
+                <div class="sand-texture"></div>
+                <div class="small-rocks">
+                    <div class="rock rock-1"></div>
+                    <div class="rock rock-2"></div>
+                    <div class="rock rock-3"></div>
+                    <div class="rock rock-4"></div>
+                </div>
+            </div>
+            <div class="desert"></div>
+
+            <div class="cactus-container" id="cactus">
+                <div class="magic-glow"></div>
+                <div class="cactus">
+                    <div class="cactus-body">
+                        <div class="cactus-ribs"></div>
+                    </div>
+                    <div class="cactus-arm arm-left"></div>
+                    <div class="cactus-arm arm-right"></div>
+                    <div class="cactus-areoles areole-1"></div>
+                    <div class="cactus-areoles areole-2"></div>
+                    <div class="cactus-areoles areole-3"></div>
+                    <div class="cactus-spines spine-1"></div>
+                    <div class="cactus-spines spine-2"></div>
+                    <div class="cactus-spines spine-3"></div>
+                    <div class="cactus-spines spine-4"></div>
+                    <div class="cactus-spines spine-5"></div>
+                    <div class="cactus-face">
+                        <div class="eyes">
+                            <div class="eye"></div>
+                            <div class="eye"></div>
+                        </div>
+                        <div class="mouth"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="stats">
+            <div class="bubbles-count" id="bubblesCount">0 энергетических пузырей</div>
+            <div class="level">Уровень 1: Пустынный странник</div>
+        </div>
+    </div>
+
+    <script>
+        class MagicCactusGame {
+            constructor() {
+                this.bubbles = 0;
+                this.level = 1;
+                this.cactus = document.getElementById('cactus');
+                this.bubblesCount = document.getElementById('bubblesCount');
+                this.stars = document.getElementById('stars');
+
+                this.initStars();
+                this.setupEventListeners();
+            }
+
+            initStars() {
+                for (let i = 0; i < 80; i++) {
+                    const star = document.createElement('div');
+                    star.className = 'star';
+                    const size = Math.random() * 2 + 1;
+                    star.style.width = size + 'px';
+                    star.style.height = size + 'px';
+                    star.style.left = Math.random() * 100 + '%';
+                    star.style.top = Math.random() * 100 + '%';
+                    star.style.animationDelay = Math.random() * 4 + 's';
+                    star.style.animationDuration = (Math.random() * 3 + 2) + 's';
+                    this.stars.appendChild(star);
+                }
+            }
+
+            setupEventListeners() {
+                this.cactus.addEventListener('click', (e) => {
+                    this.createClickEffect(e);
+                    this.createBubble(e);
+                    this.addBubbles(1);
+                    this.animateClick();
+                });
+
+                // Убираем выделение при тапе на мобильных
+                this.cactus.addEventListener('touchstart', (e) => {
+                    e.preventDefault();
+                });
+            }
+
+            createClickEffect(event) {
+                const effect = document.createElement('div');
+                effect.className = 'click-effect';
+
+                const rect = this.cactus.getBoundingClientRect();
+                effect.style.left = (event.clientX - rect.left - 20) + 'px';
+                effect.style.top = (event.clientY - rect.top - 20) + 'px';
+
+                this.cactus.appendChild(effect);
+
+                setTimeout(() => {
+                    effect.remove();
+                }, 600);
+            }
+
+            createBubble(event) {
+                const bubble = document.createElement('div');
+                bubble.className = 'bubble';
+
+                const size = Math.random() * 25 + 15;
+                bubble.style.width = size + 'px';
+                bubble.style.height = size + 'px';
+
+                const rect = this.cactus.getBoundingClientRect();
+                bubble.style.left = (event.clientX - rect.left - size / 2) + 'px';
+                bubble.style.top = (event.clientY - rect.top - size / 2) + 'px';
+
+                this.cactus.appendChild(bubble);
+
+                setTimeout(() => {
+                    bubble.remove();
+                }, 2500);
+            }
+
+            addBubbles(amount) {
+                this.bubbles += amount;
+                this.updateDisplay();
+                this.checkLevelUp();
+            }
+
+            updateDisplay() {
+                this.bubblesCount.textContent = `${this.bubbles} энергетических пузырей`;
+            }
+
+            checkLevelUp() {
+                const newLevel = Math.floor(this.bubbles / 50) + 1;
+                if (newLevel > this.level) {
+                    this.level = newLevel;
+                    this.onLevelUp();
+                }
+            }
+
+            onLevelUp() {
+                // Здесь будет логика смены визуала при повышении уровня
+                console.log(`Достигнут уровень ${this.level}!`);
+            }
+
+            animateClick() {
+                this.cactus.style.transform = 'scale(0.98)';
+                setTimeout(() => {
+                    this.cactus.style.transform = 'scale(1)';
+                }, 100);
+            }
+        }
+
+        // Инициализация игры
+        document.addEventListener('DOMContentLoaded', () => {
+            new MagicCactusGame();
+        });
+    </script>
+</body>
+
+</html>
