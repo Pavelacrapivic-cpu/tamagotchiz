@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>🐲 Мой Дракоша</title>
+    <meta charset="UTF-8">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: linear-gradient(135deg, #87CEEB 0%, #98FB98 100%);
+            font-family: 'Arial', sans-serif;
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        #container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        #ui {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(255, 255, 255, 0.95);
+            padding: 15px 25px;
+            border-radius: 25px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            z-index: 100;
+            min-width: 450px;
+            text-align: center;
+            backdrop-filter: blur(10px);
+            border: 2px solid rgba(255, 255, 255, 0.5);
+        }
+
+        #stats {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 15px;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            z-index: 100;
+            min-width: 200px;
+            backdrop-filter: blur(10px);
+        }
+
+        .stat-bar {
+            margin: 8px 0;
+            font-size: 14px;
+        }
+
+        .bar-container {
+            width: 100%;
+            height: 8px;
+            background: #e0e0e0;
+            border-radius: 4px;
+            margin-top: 4px;
+            overflow: hidden;
+        }
+
+        .bar {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.3s ease;
+        }
+
+        .hunger-bar {
+            background: linear-gradient(90deg, #FF6B6B, #FF8E53);
+        }
+
+        .happy-bar {
+            background: linear-gradient(90deg, #4ECDC4, #44A08D);
+        }
+
+        .energy-bar {
+            background: linear-gradient(90deg, #FFD93D, #FF9C33);
+        }
+
+        button {
+            background: linear-gradient(45deg, #FF6B6B, #4ECDC4);
+            border: none;
+            padding: 12px 20px;
+            margin: 5px;
+            border-radius: 15px;
+            color: white;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: bold;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        button:active {
+            transform: translateY(-1px);
+        }
+
+        #loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 24px;
+            z-index: 1000;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 20px 40px;
+            border-radius: 15px;
+            text-align: center;
+        }
+
+        #mood {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 15px;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            z-index: 100;
+            font-size: 48px;
+            backdrop-filter: blur(10px);
+        }
+
+        #action-text {
+            position: absolute;
+            top: 40%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(255, 255, 255, 0.9);
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            z-index: 90;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="loading">🔄 Загружаем волшебный мир...</div>
+    <div id="action-text"></div>
+
+    <div id="stats">
+        <div class="stat-bar">
+            🍖 Голод: <span id="hunger-value">50</span>%
+            <div class="bar-container">
+                <div class="bar hunger-bar" id="hunger-bar" style="width: 50%;"></div>
+            </div>
+        </div>
+        <div class="stat-bar">
+            😊 Настроение: <span id="happiness-value">70</span>%
+            <div class="bar-container">
+                <div class="bar happy-bar" id="happiness-bar" style="width: 70%;"></div>
+            </div>
+        </div>
+        <div class="stat-bar">
+            ⚡ Энергия: <span id="energy-value">80</span>%
+            <div class="bar-container">
+                <div class="bar energy-bar" id="energy-bar" style="width: 80%;"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="mood">😊</div>
+
+    <div id="container"></div>
+
+    <div id="ui">
+        <button onclick="feed()">🍖 Покормить</button>
+        <button onclick="play()">🎮 Играть</button>
+        <button onclick="sleep()">💤 Спать</button>
+        <button onclick="pet()">❤️ Погладить</button>
+        <button onclick="dance()">💃 Танцевать</button>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+
+    <script>
+        // Переменные
+        let scene, camera, renderer, dragon, mixer, clock;
+        let hunger = 50, happiness = 70, energy = 80;
+        let currentAction = null;
+        let actionTimeout = null;
+
+        // Инициализация
+        function init() {
+            // Сцена
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x87CEEB);
+            scene.fog = new THREE.Fog(0x87CEEB, 10, 25);
+
+            // Камера
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(4, 3, 6);
+            camera.lookAt(0, 1, 0);
+
+            // Рендерер
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            renderer.outputEncoding = THREE.sRGBEncoding;
+            document.getElementById('container').appendChild(renderer.domElement);
+
+            // ОСВЕЩЕНИЕ - ИСПРАВЛЕНО!
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.8); // Увеличили интенсивность
+            scene.add(ambientLight);
+
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 1.2); // Ярче
+            directionalLight.position.set(8, 12, 6);
+            directionalLight.castShadow = true;
+            directionalLight.shadow.mapSize.width = 2048;
+            directionalLight.shadow.mapSize.height = 2048;
+            directionalLight.shadow.camera.near = 0.5;
+            directionalLight.shadow.camera.far = 50;
+            scene.add(directionalLight);
+
+            // Дополнительный свет спереди
+            const fillLight = new THREE.DirectionalLight(0xffffff, 0.4);
+            fillLight.position.set(-5, 5, 5);
+            scene.add(fillLight);
+
+            // Солнце
+            const sunGeometry = new THREE.SphereGeometry(0.8, 32, 32);
+            const sunMaterial = new THREE.MeshBasicMaterial({
+                color: 0xFFFF00,
+                emissive: 0xFFFF00,
+                emissiveIntensity: 0.5
+            });
+            const sun = new THREE.Mesh(sunGeometry, sunMaterial);
+            sun.position.set(10, 10, -8);
+            scene.add(sun);
+
+            // Создаем окружение
+            createEnvironment();
+
+            // Загрузка дракона
+            const loader = new THREE.GLTFLoader();
+            loader.load('./VGQ6L8BATTZ8Q4OFEHZOIS0VN.gltf', function (gltf) {
+                dragon = gltf.scene;
+
+                // Настройка дракона - УВЕЛИЧИМ И ПОДНИМЕМ
+                dragon.scale.set(1.2, 1.2, 1.2);
+                dragon.position.set(0, 0.5, 0);
+
+                // ЯРЧЕ МАТЕРИАЛЫ
+                dragon.traverse(function (node) {
+                    if (node.isMesh) {
+                        node.castShadow = true;
+                        node.receiveShadow = true;
+
+                        // Увеличиваем яркость материалов
+                        if (node.material) {
+                            if (Array.isArray(node.material)) {
+                                node.material.forEach(mat => {
+                                    if (mat.isMeshStandardMaterial) {
+                                        mat.roughness = 0.6;
+                                        mat.metalness = 0.2;
+                                        mat.emissive = new THREE.Color(0x222222);
+                                    }
+                                });
+                            } else if (node.material.isMeshStandardMaterial) {
+                                node.material.roughness = 0.6;
+                                node.material.metalness = 0.2;
+                                node.material.emissive = new THREE.Color(0x222222);
+                            }
+                        }
+                    }
+                });
+
+                scene.add(dragon);
+
+                // Анимации
+                if (gltf.animations && gltf.animations.length) {
+                    mixer = new THREE.AnimationMixer(dragon);
+                    console.log('Доступные анимации:', gltf.animations.map(anim => anim.name));
+
+                    // Автоматически играем первую анимацию если есть
+                    if (gltf.animations[0]) {
+                        const action = mixer.clipAction(gltf.animations[0]);
+                        action.play();
+                    }
+                } else {
+                    console.log('Нет анимаций в модели');
+                }
+
+                // Скрываем загрузку
+                document.getElementById('loading').style.display = 'none';
+                showActionText('Привет! Я твой дракончик! 🐲');
+
+            }, undefined, function (error) {
+                console.error('Ошибка загрузки модели:', error);
+                document.getElementById('loading').innerHTML = '❌ Ошибка загрузки<br>Создаем дракона...';
+                createFallbackDragon();
+            });
+
+            clock = new THREE.Clock();
+
+            // Обработка ресайза
+            window.addEventListener('resize', onWindowResize);
+
+            // Запуск анимации
+            animate();
+        }
+
+        function createEnvironment() {
+            // Трава (пол)
+            const grassGeometry = new THREE.PlaneGeometry(25, 25, 10, 10);
+            const grassMaterial = new THREE.MeshStandardMaterial({
+                color: 0x7CFC00,
+                roughness: 0.8,
+                metalness: 0.1
+            });
+            const grass = new THREE.Mesh(grassGeometry, grassMaterial);
+            grass.rotation.x = -Math.PI / 2;
+            grass.receiveShadow = true;
+            scene.add(grass);
+
+            // Текстура травы (простая версия)
+            for (let i = 0; i < 50; i++) {
+                createGrassBlade(
+                    (Math.random() - 0.5) * 20,
+                    (Math.random() - 0.5) * 20
+                );
+            }
+
+            // Деревья
+            createTree(-8, 0, -6);
+            createTree(9, 0, -7);
+            createTree(-10, 0, 4);
+            createTree(7, 0, 8);
+            createTree(0, 0, -10);
+
+            // Камни
+            createRock(-5, 0, 5);
+            createRock(6, 0, -3);
+            createRock(-3, 0, -8);
+        }
+
+        function createGrassBlade(x, z) {
+            const grassHeight = 0.3 + Math.random() * 0.3;
+            const grassGeometry = new THREE.PlaneGeometry(0.05, grassHeight);
+            const grassMaterial = new THREE.MeshBasicMaterial({
+                color: new THREE.Color().setHSL(0.3, 0.8, 0.3 + Math.random() * 0.2),
+                side: THREE.DoubleSide
+            });
+            const grass = new THREE.Mesh(grassGeometry, grassMaterial);
+            grass.position.set(x, grassHeight / 2, z);
+            grass.rotation.x = Math.PI / 2;
+            grass.rotation.z = Math.random() * Math.PI;
+            scene.add(grass);
+        }
+
+        function createTree(x, y, z) {
+            // Ствол
+            const trunkGeometry = new THREE.CylinderGeometry(0.4, 0.5, 2.5, 8);
+            const trunkMaterial = new THREE.MeshStandardMaterial({
+                color: 0x8B4513,
+                roughness: 0.9
+            });
+            const trunk = new THREE.Mesh(trunkGeometry, trunkMaterial);
+            trunk.position.set(x, 1.25, z);
+            trunk.castShadow = true;
+            scene.add(trunk);
+
+            // Крона
+            const crownSize = 2 + Math.random() * 1;
+            const crownGeometry = new THREE.SphereGeometry(crownSize, 8, 6);
+            const crownMaterial = new THREE.MeshStandardMaterial({
+                color: 0x228B22,
+                roughness: 0.8
+            });
+            const crown = new THREE.Mesh(crownGeometry, crownMaterial);
+            crown.position.set(x, 3, z);
+            crown.castShadow = true;
+            scene.add(crown);
+        }
+
+        function createRock(x, y, z) {
+            const rockGeometry = new THREE.DodecahedronGeometry(0.5 + Math.random() * 0.3, 1);
+            const rockMaterial = new THREE.MeshStandardMaterial({
+                color: 0x888888,
+                roughness: 0.9
+            });
+            const rock = new THREE.Mesh(rockGeometry, rockMaterial);
+            rock.position.set(x, 0.5, z);
+            rock.rotation.set(
+                Math.random() * Math.PI,
+                Math.random() * Math.PI,
+                Math.random() * Math.PI
+            );
+            rock.castShadow = true;
+            scene.add(rock);
+        }
+
+        function createFallbackDragon() {
+            // Яркий цветной дракон из примитивов
+            const bodyGeometry = new THREE.SphereGeometry(0.6, 16, 16);
+            const bodyMaterial = new THREE.MeshStandardMaterial({
+                color: 0xFF4444,
+                emissive: 0x442222
+            });
+            const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
+            body.position.set(0, 0.6, 0);
+            body.castShadow = true;
+            scene.add(body);
+
+            const headGeometry = new THREE.SphereGeometry(0.4, 16, 16);
+            const head = new THREE.Mesh(headGeometry, bodyMaterial);
+            head.position.set(0, 1.0, 0.7);
+            head.castShadow = true;
+            scene.add(head);
+
+            // Глаза
+            const eyeGeometry = new THREE.SphereGeometry(0.08, 8, 8);
+            const eyeMaterial = new THREE.MeshBasicMaterial({ color: 0xFFFFFF });
+            const leftEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
+            const rightEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
+            leftEye.position.set(-0.15, 1.05, 1.0);
+            rightEye.position.set(0.15, 1.05, 1.0);
+            scene.add(leftEye);
+            scene.add(rightEye);
+
+            // Крылья
+            const wingGeometry = new THREE.PlaneGeometry(0.8, 0.5);
+            const wingMaterial = new THREE.MeshStandardMaterial({
+                color: 0xFF8888,
+                side: THREE.DoubleSide
+            });
+            const leftWing = new THREE.Mesh(wingGeometry, wingMaterial);
+            const rightWing = new THREE.Mesh(wingGeometry, wingMaterial);
+            leftWing.position.set(-0.8, 0.8, 0);
+            rightWing.position.set(0.8, 0.8, 0);
+            leftWing.rotation.z = Math.PI / 4;
+            rightWing.rotation.z = -Math.PI / 4;
+            scene.add(leftWing);
+            scene.add(rightWing);
+
+            dragon = new THREE.Group();
+            dragon.add(body);
+            dragon.add(head);
+            dragon.add(leftEye);
+            dragon.add(rightEye);
+            dragon.add(leftWing);
+            dragon.add(rightWing);
+
+            document.getElementById('loading').style.display = 'none';
+            showActionText('Привет! Я простой дракончик! 🐲');
+        }
+
+        function performAction(action) {
+            if (actionTimeout) {
+                clearTimeout(actionTimeout);
+                actionTimeout = null;
+            }
+
+            currentAction = action;
+
+            // Сбрасываем предыдущие анимации
+            if (dragon) {
+                dragon.rotation.x = 0;
+                dragon.rotation.y = 0;
+                dragon.rotation.z = 0;
+                dragon.position.y = 0.5;
+                dragon.scale.set(1.2, 1.2, 1.2);
+            }
+
+            switch (action) {
+                case 'eat':
+                    showActionText('Вкусно! Спасибо! 🍖');
+                    animateDragon(0.3, 0, 0, 1.0, 1.0, 1.0); // Наклон вперед
+                    break;
+                case 'play':
+                    showActionText('Ура! Играем! 🎮');
+                    animateDragon(0, 0, 0.3, 1.1, 1.1, 1.1); // Подпрыгивание
+                    setTimeout(() => animateDragon(0, 0, -0.3, 1.0, 1.0, 1.0), 300);
+                    break;
+                case 'sleep':
+                    showActionText('Хр-р-р... Сладких снов... 💤');
+                    animateDragon(-0.4, 0, 0, 1.0, 1.0, 1.0); // Лежание
+                    dragon.position.y = 0.3;
+                    break;
+                case 'pet':
+                    showActionText('Мур-р-р... Как приятно! ❤️');
+                    animateDragon(0.2, 0, 0, 1.0, 1.05, 1.0); // Выгибание
+                    break;
+                case 'dance':
+                    showActionText('Танцуем! 💃');
+                    // Танцевальная последовательность
+                    animateDragon(0, 0.5, 0, 1.0, 1.0, 1.0);
+                    setTimeout(() => animateDragon(0, -0.5, 0, 1.0, 1.0, 1.0), 400);
+                    setTimeout(() => animateDragon(0, 0.3, 0, 1.0, 1.0, 1.0), 800);
+                    setTimeout(() => animateDragon(0, 0, 0, 1.0, 1.0, 1.0), 1200);
+                    break;
+            }
+
+            // Возврат к нормальному состоянию
+            actionTimeout = setTimeout(() => {
+                if (currentAction === action) {
+                    resetDragon();
+                    currentAction = null;
+                }
+            }, 2000);
+
+            updateMood();
+        }
+
+        function animateDragon(rotX, rotY, rotZ, scaleX, scaleY, scaleZ) {
+            if (!dragon) return;
+
+            dragon.rotation.x = rotX;
+            dragon.rotation.y = rotY;
+            dragon.rotation.z = rotZ;
+            dragon.scale.set(scaleX, scaleY, scaleZ);
+        }
+
+        function resetDragon() {
+            if (!dragon) return;
+
+            dragon.rotation.x = 0;
+            dragon.rotation.y = 0;
+            dragon.rotation.z = 0;
+            dragon.position.y = 0.5;
+            dragon.scale.set(1.2, 1.2, 1.2);
+        }
+
+        function showActionText(text) {
+            const actionElement = document.getElementById('action-text');
+            actionElement.textContent = text;
+            actionElement.style.opacity = '1';
+
+            setTimeout(() => {
+                actionElement.style.opacity = '0';
+            }, 2000);
+        }
+
+        function updateMood() {
+            const moodElement = document.getElementById('mood');
+            let mood = '😊';
+
+            if (happiness >= 80) mood = '😄';
+            else if (happiness >= 60) mood = '😊';
+            else if (happiness >= 40) mood = '😐';
+            else if (happiness >= 20) mood = '😞';
+            else mood = '😢';
+
+            if (energy < 30) mood = '😴';
+            if (hunger < 20) mood = '🤤';
+
+            moodElement.textContent = mood;
+        }
+
+        // Действия с драконом
+        function feed() {
+            if (energy < 10) {
+                showActionText('Слишком устал для еды... 💤');
+                return;
+            }
+            hunger = Math.min(100, hunger + 30);
+            energy = Math.max(0, energy - 8);
+            performAction('eat');
+            updateStats();
+        }
+
+        function play() {
+            if (energy < 15) {
+                showActionText('Нужно отдохнуть... 😴');
+                return;
+            }
+            happiness = Math.min(100, happiness + 25);
+            energy = Math.max(0, energy - 20);
+            hunger = Math.max(0, hunger - 10);
+            performAction('play');
+            updateStats();
+        }
+
+        function sleep() {
+            energy = Math.min(100, energy + 40);
+            hunger = Math.max(0, hunger - 15);
+            happiness = Math.max(0, happiness - 5);
+            performAction('sleep');
+            updateStats();
+        }
+
+        function pet() {
+            happiness = Math.min(100, happiness + 20);
+            performAction('pet');
+            updateStats();
+        }
+
+        function dance() {
+            if (energy < 25) {
+                showActionText('Нет сил танцевать... 💤');
+                return;
+            }
+            happiness = Math.min(100, happiness + 30);
+            energy = Math.max(0, energy - 25);
+            hunger = Math.max(0, hunger - 8);
+            performAction('dance');
+            updateStats();
+        }
+
+        function updateStats() {
+            document.getElementById('hunger-value').textContent = hunger;
+            document.getElementById('happiness-value').textContent = happiness;
+            document.getElementById('energy-value').textContent = energy;
+
+            document.getElementById('hunger-bar').style.width = hunger + '%';
+            document.getElementById('happiness-bar').style.width = happiness + '%';
+            document.getElementById('energy-bar').style.width = energy + '%';
+
+            updateMood();
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            const delta = clock.getDelta();
+            if (mixer) mixer.update(delta);
+
+            // Плавное дыхание и легкое покачивание
+            if (dragon && !currentAction) {
+                const time = Date.now() * 0.001;
+                dragon.position.y = 0.5 + Math.sin(time * 2) * 0.03;
+                dragon.rotation.y = Math.sin(time * 0.5) * 0.1;
+            }
+
+            // Анимация крыльев для fallback дракона
+            if (dragon && dragon.children.length > 4) {
+                const time = Date.now() * 0.005;
+                const leftWing = dragon.children[4];
+                const rightWing = dragon.children[5];
+                if (leftWing && rightWing) {
+                    leftWing.rotation.z = Math.PI / 4 + Math.sin(time) * 0.2;
+                    rightWing.rotation.z = -Math.PI / 4 + Math.sin(time + Math.PI) * 0.2;
+                }
+            }
+
+            renderer.render(scene, camera);
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        // Запуск при загрузке
+        window.addEventListener('DOMContentLoaded', init);
+
+        // Авто-уменьшение характеристик
+        setInterval(() => {
+            hunger = Math.max(0, hunger - 3);
+            happiness = Math.max(0, happiness - 2);
+            energy = Math.max(0, energy - 1);
+            updateStats();
+        }, 15000);
+
+        // Периодические реакции
+        setInterval(() => {
+            if (Math.random() > 0.7 && happiness > 50 && !currentAction) {
+                const reactions = ['Хочу играть!', 'Почеши за ушком!', 'Как дела?', 'Красивый день! 🐲'];
+                showActionText(reactions[Math.floor(Math.random() * reactions.length)]);
+
+                // Легкая реакция
+                if (dragon) {
+                    dragon.rotation.x = 0.1;
+                    setTimeout(() => {
+                        if (!currentAction) dragon.rotation.x = 0;
+                    }, 1000);
+                }
+            }
+        }, 10000);
+
+    </script>
+</body>
+
+</html>
