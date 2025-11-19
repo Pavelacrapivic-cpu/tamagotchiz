@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>3D Космический Йода</title>
+    <meta charset="UTF-8">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #000;
+            color: white;
+            font-family: Arial;
+            overflow: hidden;
+        }
+
+        #container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        #ui {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 100;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 20px;
+            border-radius: 15px;
+            border: 2px solid #4ecdc4;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .stat {
+            padding: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+
+        button {
+            background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
+            border: none;
+            padding: 12px;
+            border-radius: 8px;
+            color: white;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        button:hover {
+            transform: scale(1.05);
+        }
+
+        #mood {
+            font-size: 24px;
+            text-align: center;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="container">
+        <div id="ui">
+            <h2>🌟 Космический Йода 3D 🌟</h2>
+            <div id="mood">😊</div>
+            <div class="stats">
+                <div class="stat">🍖: <span id="hunger">50</span>%</div>
+                <div class="stat">😊: <span id="happiness">70</span>%</div>
+                <div class="stat">💤: <span id="energy">80</span>%</div>
+                <div class="stat">✨: <span id="cleanliness">60</span>%</div>
+            </div>
+            <div class="buttons">
+                <button onclick="feed()">🍖 Покормить</button>
+                <button onclick="play()">🎮 Играть</button>
+                <button onclick="sleep()">💤 Спать</button>
+                <button onclick="clean()">✨ Чистить</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        // Система питомца
+        class CosmicPet3D {
+            constructor() {
+                this.hunger = 50;
+                this.happiness = 70;
+                this.energy = 80;
+                this.cleanliness = 60;
+                this.lastUpdate = Date.now();
+                this.mood = 'happy';
+                this.animation = 'idle';
+            }
+
+            update() {
+                const now = Date.now();
+                const hoursPassed = (now - this.lastUpdate) / (1000 * 60 * 60);
+
+                if (hoursPassed > 0.1) {
+                    this.hunger = Math.max(0, this.hunger - 8 * hoursPassed);
+                    this.happiness = Math.max(0, this.happiness - 6 * hoursPassed);
+                    this.energy = Math.max(0, this.energy - 7 * hoursPassed);
+                    this.cleanliness = Math.max(0, this.cleanliness - 5 * hoursPassed);
+                    this.lastUpdate = now;
+                }
+                this.updateMood();
+            }
+
+            updateMood() {
+                if (this.hunger < 20) {
+                    this.mood = 'hungry';
+                    this.animation = 'sad';
+                } else if (this.energy < 20) {
+                    this.mood = 'sleepy';
+                    this.animation = 'sleep';
+                } else if (this.happiness > 70) {
+                    this.mood = 'happy';
+                    this.animation = 'happy';
+                } else {
+                    this.mood = 'normal';
+                    this.animation = 'idle';
+                }
+            }
+
+            feed() {
+                this.hunger = Math.min(100, this.hunger + 30);
+                this.cleanliness = Math.max(0, this.cleanliness - 5);
+                this.animation = 'eat';
+                setTimeout(() => this.updateMood(), 2000);
+            }
+
+            play() {
+                this.happiness = Math.min(100, this.happiness + 25);
+                this.energy = Math.max(0, this.energy - 15);
+                this.animation = 'play';
+                setTimeout(() => this.updateMood(), 2000);
+            }
+
+            sleep() {
+                this.energy = Math.min(100, this.energy + 40);
+                this.hunger = Math.max(0, this.hunger - 10);
+                this.animation = 'sleep';
+                setTimeout(() => this.updateMood(), 3000);
+            }
+
+            clean() {
+                this.cleanliness = Math.min(100, this.cleanliness + 35);
+                this.happiness = Math.min(100, this.happiness + 10);
+                this.animation = 'clean';
+                setTimeout(() => this.updateMood(), 2000);
+            }
+        }
+
+        // 3D сцена
+        class Game3D {
+            constructor() {
+                this.scene = new THREE.Scene();
+                this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+                this.renderer = new THREE.WebGLRenderer({ antialias: true });
+                this.pet = null;
+                this.moodLights = {};
+
+                this.init();
+            }
+
+            init() {
+                // Рендерер
+                this.renderer.setSize(window.innerWidth, window.innerHeight);
+                this.renderer.setClearColor(0x0a0a2a);
+                document.getElementById('container').appendChild(this.renderer.domElement);
+
+                // Камера
+                this.camera.position.z = 5;
+
+                // Освещение
+                const ambientLight = new THREE.AmbientLight(0x404040, 0.6);
+                this.scene.add(ambientLight);
+
+                const directionalLight = new THREE.DirectionalLight(0x4ecdc4, 1);
+                directionalLight.position.set(5, 5, 5);
+                this.scene.add(directionalLight);
+
+                // Настроечное освещение
+                this.moodLights.happy = new THREE.PointLight(0x4ecdc4, 1, 10);
+                this.moodLights.hungry = new THREE.PointLight(0xff6b6b, 1, 10);
+                this.moodLights.sleepy = new THREE.PointLight(0x45b7d1, 1, 10);
+                this.moodLights.normal = new THREE.PointLight(0xffffff, 1, 10);
+
+                Object.values(this.moodLights).forEach(light => {
+                    light.position.set(0, 3, 3);
+                    this.scene.add(light);
+                });
+
+                this.createPet();
+                this.animate();
+
+                // Обработка ресайза
+                window.addEventListener('resize', () => this.onWindowResize());
+            }
+
+            createPet() {
+                // Тело (основная сфера)
+                const bodyGeometry = new THREE.SphereGeometry(1, 32, 32);
+                const bodyMaterial = new THREE.MeshPhongMaterial({
+                    color: 0x4ecdc4,
+                    shininess: 100
+                });
+                this.pet = new THREE.Mesh(bodyGeometry, bodyMaterial);
+
+                // Уши
+                const earGeometry = new THREE.ConeGeometry(0.3, 0.8, 8);
+                const earMaterial = new THREE.MeshPhongMaterial({ color: 0x4ecdc4 });
+
+                const leftEar = new THREE.Mesh(earGeometry, earMaterial);
+                leftEar.position.set(-0.7, 0.8, 0);
+                leftEar.rotation.z = -0.3;
+
+                const rightEar = new THREE.Mesh(earGeometry, earMaterial);
+                rightEar.position.set(0.7, 0.8, 0);
+                rightEar.rotation.z = 0.3;
+
+                // Глаза
+                const eyeGeometry = new THREE.SphereGeometry(0.15, 16, 16);
+                const eyeMaterial = new THREE.MeshPhongMaterial({ color: 0x000000 });
+
+                const leftEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
+                leftEye.position.set(-0.3, 0.2, 0.9);
+
+                const rightEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
+                rightEye.position.set(0.3, 0.2, 0.9);
+
+                // Рот
+                const mouthGeometry = new THREE.TorusGeometry(0.2, 0.05, 8, 16, Math.PI);
+                const mouthMaterial = new THREE.MeshPhongMaterial({ color: 0xff6b6b });
+                const mouth = new THREE.Mesh(mouthGeometry, mouthMaterial);
+                mouth.position.set(0, -0.3, 0.9);
+                mouth.rotation.x = Math.PI / 2;
+
+                // Сборка питомца
+                this.pet.add(leftEar);
+                this.pet.add(rightEar);
+                this.pet.add(leftEye);
+                this.pet.add(rightEye);
+                this.pet.add(mouth);
+
+                this.scene.add(this.pet);
+            }
+
+            updatePet(mood, animation) {
+                // Анимации в зависимости от состояния
+                if (!this.pet) return;
+
+                // Сброс предыдущей анимации
+                this.pet.rotation.x = 0;
+                this.pet.rotation.y = 0;
+                this.pet.position.y = 0;
+
+                // Применяем анимацию
+                switch (animation) {
+                    case 'happy':
+                        this.pet.rotation.y = Math.sin(Date.now() * 0.005) * 0.3;
+                        break;
+                    case 'sad':
+                        this.pet.rotation.x = 0.2;
+                        this.pet.position.y = -0.2;
+                        break;
+                    case 'eat':
+                        this.pet.rotation.x = Math.sin(Date.now() * 0.01) * 0.1;
+                        break;
+                    case 'play':
+                        this.pet.rotation.y = Date.now() * 0.005;
+                        break;
+                    case 'sleep':
+                        this.pet.rotation.x = 0.5;
+                        break;
+                    case 'clean':
+                        this.pet.rotation.z = Math.sin(Date.now() * 0.01) * 0.2;
+                        break;
+                }
+
+                // Освещение по настроению
+                Object.values(this.moodLights).forEach(light => light.visible = false);
+                if (this.moodLights[mood]) {
+                    this.moodLights[mood].visible = true;
+                }
+            }
+
+            animate() {
+                requestAnimationFrame(() => this.animate());
+                this.renderer.render(this.scene, this.camera);
+            }
+
+            onWindowResize() {
+                this.camera.aspect = window.innerWidth / window.innerHeight;
+                this.camera.updateProjectionMatrix();
+                this.renderer.setSize(window.innerWidth, window.innerHeight);
+            }
+        }
+
+        // Инициализация
+        const pet = new CosmicPet3D();
+        const game3d = new Game3D();
+
+        // Обновление интерфейса
+        function updateDisplay() {
+            document.getElementById('hunger').textContent = Math.round(pet.hunger);
+            document.getElementById('happiness').textContent = Math.round(pet.happiness);
+            document.getElementById('energy').textContent = Math.round(pet.energy);
+            document.getElementById('cleanliness').textContent = Math.round(pet.cleanliness);
+
+            // Эмодзи настроения
+            const moodEmoji = {
+                'happy': '😊',
+                'hungry': '🍖',
+                'sleepy': '💤',
+                'normal': '😐'
+            };
+            document.getElementById('mood').textContent = moodEmoji[pet.mood] || '😐';
+
+            // Обновляем 3D модель
+            game3d.updatePet(pet.mood, pet.animation);
+        }
+
+        // Действия
+        function feed() { pet.feed(); updateDisplay(); }
+        function play() { pet.play(); updateDisplay(); }
+        function sleep() { pet.sleep(); updateDisplay(); }
+        function clean() { pet.clean(); updateDisplay(); }
+
+        // Главный цикл
+        setInterval(() => {
+            pet.update();
+            updateDisplay();
+        }, 1000);
+
+        updateDisplay();
+    </script>
+</body>
+
+</html>
