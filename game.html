@@ -1,0 +1,752 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>🚀 ЖИВОЙ ДРАКОН - Максимум возможностей AI</title>
+    <meta charset="UTF-8">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: radial-gradient(circle at center, #0c1445 0%, #000000 100%);
+            font-family: 'Arial', sans-serif;
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        #container {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+        }
+
+        .ui-overlay {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 100;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 15px 30px;
+            border-radius: 20px;
+            border: 2px solid #00ffff;
+            box-shadow: 0 0 30px #00ffff;
+        }
+
+        .control-btn {
+            background: linear-gradient(45deg, #ff00ff, #00ffff);
+            border: none;
+            padding: 12px 24px;
+            margin: 0 10px;
+            border-radius: 10px;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .control-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 0 20px #00ffff;
+        }
+
+        .stats {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            color: white;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 15px;
+            border-radius: 10px;
+            border: 1px solid #ff00ff;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="container"></div>
+    <div class="stats" id="stats">
+        <div>FPS: <span id="fps">60</span></div>
+        <div>Треугольники: <span id="triangles">0</span></div>
+        <div>Анимация: <span id="animation">Idle</span></div>
+    </div>
+    <div class="ui-overlay">
+        <button class="control-btn" onclick="setAnimation('idle')">Отдых</button>
+        <button class="control-btn" onclick="setAnimation('fly')">Полёт</button>
+        <button class="control-btn" onclick="setAnimation('attack')">Атака</button>
+        <button class="control-btn" onclick="setAnimation('roar')">Рёв</button>
+        <button class="control-btn" onclick="toggleBreath()">Дыхание</button>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/EffectComposer.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/CopyShader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/FilmShader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/shaders/FocusShader.js"></script>
+
+    <script>
+        // 🐉 СИСТЕМА ЖИВОГО ДРАКОНА - МАКСИМУМ ВОЗМОЖНОСТЕЙ
+        class LivingDragon {
+            constructor() {
+                this.scene = new THREE.Scene();
+                this.camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+                this.renderer = new THREE.WebGLRenderer({
+                    antialias: true,
+                    alpha: true,
+                    powerPreference: "high-performance"
+                });
+
+                this.dragon = null;
+                this.mixer = null;
+                this.animations = {};
+                this.currentAction = null;
+                this.clock = new THREE.Clock();
+
+                this.breathActive = false;
+                this.breathParticles = null;
+
+                this.init();
+            }
+
+            init() {
+                // 🎨 Настройка рендерера для максимальной производительности
+                this.renderer.setSize(window.innerWidth, window.innerHeight);
+                this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+                this.renderer.outputEncoding = THREE.sRGBEncoding;
+                this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
+                this.renderer.toneMappingExposure = 1;
+                this.renderer.shadowMap.enabled = true;
+                this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+                document.getElementById('container').appendChild(this.renderer.domElement);
+
+                // 🎥 Камера и контролы
+                this.camera.position.set(0, 3, 8);
+                this.controls = new THREE.OrbitControls(this.camera, this.renderer.domElement);
+                this.controls.enableDamping = true;
+                this.controls.dampingFactor = 0.05;
+
+                // 💡 Продвинутое освещение
+                this.setupAdvancedLighting();
+
+                // 🌌 Среда
+                this.createEnvironment();
+
+                // 🐉 Загрузка сложной модели дракона
+                this.loadDragonModel();
+
+                // ✨ Пост-обработка
+                this.setupPostProcessing();
+
+                // 📊 Статистика
+                this.setupStats();
+
+                this.animate();
+                window.addEventListener('resize', () => this.onWindowResize());
+            }
+
+            setupAdvancedLighting() {
+                // Основной directional light с тенями
+                this.mainLight = new THREE.DirectionalLight(0xffebb3, 1.5);
+                this.mainLight.position.set(10, 15, 10);
+                this.mainLight.castShadow = true;
+                this.mainLight.shadow.mapSize.width = 2048;
+                this.mainLight.shadow.mapSize.height = 2048;
+                this.mainLight.shadow.camera.near = 0.5;
+                this.mainLight.shadow.camera.far = 50;
+                this.mainLight.shadow.camera.left = -20;
+                this.mainLight.shadow.camera.right = 20;
+                this.mainLight.shadow.camera.top = 20;
+                this.mainLight.shadow.camera.bottom = -20;
+                this.scene.add(this.mainLight);
+
+                // Заполняющий свет
+                const fillLight = new THREE.DirectionalLight(0x4da6ff, 0.4);
+                fillLight.position.set(-10, 5, -10);
+                this.scene.add(fillLight);
+
+                // Rim light для драматичности
+                const rimLight = new THREE.DirectionalLight(0xff4444, 0.3);
+                rimLight.position.set(0, 5, -10);
+                this.scene.add(rimLight);
+
+                // Ambient с цветом
+                const ambient = new THREE.AmbientLight(0x404040, 0.6);
+                this.scene.add(ambient);
+
+                // Точечные источники для эффектов
+                this.breathLight = new THREE.PointLight(0xff4400, 2, 10);
+                this.breathLight.visible = false;
+                this.scene.add(this.breathLight);
+            }
+
+            loadDragonModel() {
+                // Создаем дракона программно для максимального контроля
+                this.createProceduralDragon();
+            }
+
+            createProceduralDragon() {
+                const dragonGroup = new THREE.Group();
+
+                // Тело - вытянутый сфероид
+                const bodyGeometry = new THREE.SphereGeometry(1, 32, 32);
+                bodyGeometry.scale(1.5, 0.8, 3);
+                const bodyMaterial = new THREE.MeshPhysicalMaterial({
+                    color: 0x8B4513,
+                    metalness: 0.3,
+                    roughness: 0.7,
+                    clearcoat: 0.5,
+                    clearcoatRoughness: 0.3
+                });
+                const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
+                body.castShadow = true;
+                dragonGroup.add(body);
+
+                // Голова с детализацией
+                this.createDetailedHead(dragonGroup);
+
+                // Крылья с мембраной
+                this.createWings(dragonGroup);
+
+                // Лапы с когтями
+                this.createLegs(dragonGroup);
+
+                // Хвост с сегментами
+                this.createTail(dragonGroup);
+
+                // Чешуя через displacement map
+                this.addScaleDetails(body);
+
+                this.dragon = dragonGroup;
+                this.scene.add(dragonGroup);
+
+                // Создаем анимационную систему
+                this.setupAnimationSystem();
+            }
+
+            createDetailedHead(group) {
+                const headGroup = new THREE.Group();
+
+                // Основа головы
+                const headGeometry = new THREE.SphereGeometry(0.6, 32, 32);
+                headGeometry.scale(1.2, 0.9, 1.1);
+                const head = new THREE.Mesh(headGeometry, new THREE.MeshPhysicalMaterial({
+                    color: 0xA0522D,
+                    metalness: 0.4,
+                    roughness: 0.6
+                }));
+                head.position.y = 0.8;
+                head.position.z = 2.5;
+                headGroup.add(head);
+
+                // Глаза с свечением
+                const eyeGeometry = new THREE.SphereGeometry(0.15, 16, 16);
+                const eyeMaterial = new THREE.MeshPhysicalMaterial({
+                    color: 0xff0000,
+                    emissive: 0xff2200,
+                    emissiveIntensity: 0.5
+                });
+
+                const leftEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
+                leftEye.position.set(-0.3, 1.0, 3.1);
+                headGroup.add(leftEye);
+
+                const rightEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
+                rightEye.position.set(0.3, 1.0, 3.1);
+                headGroup.add(rightEye);
+
+                // Рога
+                this.createHorns(headGroup);
+
+                // Пасть
+                this.createMouth(headGroup);
+
+                this.head = headGroup;
+                group.add(headGroup);
+            }
+
+            createHorns(group) {
+                const hornGeometry = new THREE.ConeGeometry(0.08, 0.8, 8);
+                const hornMaterial = new THREE.MeshPhysicalMaterial({
+                    color: 0x8B4513,
+                    metalness: 0.5,
+                    roughness: 0.4
+                });
+
+                // Несколько рогов на голове
+                const hornPositions = [
+                    [-0.4, 1.2, 2.8], [0.4, 1.2, 2.8],
+                    [-0.5, 1.1, 2.6], [0.5, 1.1, 2.6],
+                    [-0.3, 1.3, 2.7], [0.3, 1.3, 2.7]
+                ];
+
+                hornPositions.forEach((pos, i) => {
+                    const horn = new THREE.Mesh(hornGeometry, hornMaterial);
+                    horn.position.set(pos[0], pos[1], pos[2]);
+                    horn.rotation.x = -0.5;
+                    horn.rotation.z = i % 2 === 0 ? -0.2 : 0.2;
+                    group.add(horn);
+                });
+            }
+
+            createMouth(group) {
+                // Челюсти
+                const jawGeometry = new THREE.BoxGeometry(0.8, 0.3, 0.6);
+                const jawMaterial = new THREE.MeshPhysicalMaterial({
+                    color: 0x8B0000,
+                    metalness: 0.2,
+                    roughness: 0.8
+                });
+
+                const upperJaw = new THREE.Mesh(jawGeometry, jawMaterial);
+                upperJaw.position.set(0, 0.6, 3.3);
+                group.add(upperJaw);
+
+                const lowerJaw = new THREE.Mesh(jawGeometry, jawMaterial);
+                lowerJaw.position.set(0, 0.3, 3.3);
+                this.lowerJaw = lowerJaw;
+                group.add(lowerJaw);
+
+                // Зубы
+                const toothGeometry = new THREE.ConeGeometry(0.03, 0.2, 8);
+                const toothMaterial = new THREE.MeshPhysicalMaterial({
+                    color: 0xFFFFFF,
+                    metalness: 0.1,
+                    roughness: 0.3
+                });
+
+                for (let i = 0; i < 8; i++) {
+                    const tooth = new THREE.Mesh(toothGeometry, toothMaterial);
+                    tooth.position.set(-0.3 + i * 0.08, 0.45, 3.6);
+                    tooth.rotation.x = Math.PI;
+                    group.add(tooth);
+                }
+            }
+
+            createWings(group) {
+                const wingGroup = new THREE.Group();
+
+                // Костяк крыла
+                const wingBoneGeometry = new THREE.CylinderGeometry(0.05, 0.02, 2, 8);
+                const wingBoneMaterial = new THREE.MeshPhysicalMaterial({
+                    color: 0x8B4513,
+                    metalness: 0.4
+                });
+
+                // Мембрана крыла
+                const wingShape = new THREE.Shape();
+                wingShape.moveTo(0, 0);
+                wingShape.lineTo(2, 0.5);
+                wingShape.lineTo(1, 1.5);
+                wingShape.lineTo(0, 1);
+                wingShape.lineTo(0, 0);
+
+                const wingGeometry = new THREE.ShapeGeometry(wingShape);
+                const wingMaterial = new THREE.MeshPhysicalMaterial({
+                    color: 0x654321,
+                    side: THREE.DoubleSide,
+                    transparent: true,
+                    opacity: 0.8,
+                    metalness: 0.2
+                });
+
+                // Левое крыло
+                const leftWing = new THREE.Mesh(wingGeometry, wingMaterial);
+                leftWing.rotation.y = Math.PI / 2;
+                leftWing.position.set(-1.2, 0.5, 0);
+                wingGroup.add(leftWing);
+
+                // Правое крыло
+                const rightWing = new THREE.Mesh(wingGeometry, wingMaterial);
+                rightWing.rotation.y = -Math.PI / 2;
+                rightWing.position.set(1.2, 0.5, 0);
+                wingGroup.add(rightWing);
+
+                this.wings = wingGroup;
+                group.add(wingGroup);
+            }
+
+            createLegs(group) {
+                // Создаем 4 лапы с когтями
+                for (let i = 0; i < 4; i++) {
+                    const legGroup = new THREE.Group();
+
+                    const legGeometry = new THREE.CylinderGeometry(0.15, 0.1, 0.8, 8);
+                    const legMaterial = new THREE.MeshPhysicalMaterial({
+                        color: 0x8B4513,
+                        metalness: 0.3
+                    });
+
+                    const leg = new THREE.Mesh(legGeometry, legMaterial);
+                    legGroup.add(leg);
+
+                    // Когти
+                    const clawGeometry = new THREE.ConeGeometry(0.03, 0.2, 6);
+                    for (let j = 0; j < 3; j++) {
+                        const claw = new THREE.Mesh(clawGeometry, legMaterial);
+                        claw.position.y = -0.5;
+                        claw.position.x = -0.05 + j * 0.05;
+                        claw.rotation.x = Math.PI;
+                        legGroup.add(claw);
+                    }
+
+                    // Позиционируем лапы
+                    const xPos = i % 2 === 0 ? -0.8 : 0.8;
+                    const zPos = i < 2 ? 1.5 : -1;
+                    legGroup.position.set(xPos, -0.8, zPos);
+
+                    group.add(legGroup);
+                }
+            }
+
+            createTail(group) {
+                const tailGroup = new THREE.Group();
+
+                // Сегменты хвоста
+                for (let i = 0; i < 8; i++) {
+                    const segmentGeometry = new THREE.SphereGeometry(0.3 - i * 0.03, 12, 12);
+                    const segment = new THREE.Mesh(segmentGeometry, new THREE.MeshPhysicalMaterial({
+                        color: 0x8B4513,
+                        metalness: 0.3
+                    }));
+                    segment.position.z = -2 - i * 0.4;
+                    tailGroup.add(segment);
+                }
+
+                // Шипы на хвосте
+                const spikeGeometry = new THREE.ConeGeometry(0.05, 0.3, 6);
+                for (let i = 0; i < 6; i++) {
+                    const spike = new THREE.Mesh(spikeGeometry, new THREE.MeshPhysicalMaterial({
+                        color: 0xA0522D
+                    }));
+                    spike.position.z = -2 - i * 1.2;
+                    spike.position.y = 0.2;
+                    spike.rotation.x = -0.3;
+                    tailGroup.add(spike);
+                }
+
+                group.add(tailGroup);
+                this.tail = tailGroup;
+            }
+
+            addScaleDetails(mesh) {
+                // Процедурная генерация текстуры чешуи через шейдер
+                const scaleShader = {
+                    uniforms: {
+                        time: { value: 0 }
+                    },
+                    vertexShader: `
+                        varying vec2 vUv;
+                        void main() {
+                            vUv = uv;
+                            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+                        }
+                    `,
+                    fragmentShader: `
+                        uniform float time;
+                        varying vec2 vUv;
+                        
+                        void main() {
+                            vec2 uv = vUv * 10.0;
+                            vec2 grid = fract(uv) - 0.5;
+                            float scale = 1.0 - smoothstep(0.3, 0.5, length(grid));
+                            
+                            vec3 color = mix(vec3(0.54, 0.27, 0.07), vec3(0.85, 0.65, 0.35), scale);
+                            gl_FragColor = vec4(color, 1.0);
+                        }
+                    `
+                };
+
+                mesh.material.onBeforeCompile = (shader) => {
+                    shader.uniforms.time = { value: 0 };
+                    shader.fragmentShader = shader.fragmentShader.replace(
+                        '#include <dithering_fragment>',
+                        `
+                        // Добавляем эффект чешуи
+                        vec2 uv = vWorldPosition.xz * 2.0;
+                        vec2 grid = fract(uv) - 0.5;
+                        float scalePattern = 1.0 - smoothstep(0.4, 0.5, length(grid));
+                        diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb * 1.3, scalePattern * 0.3);
+                        #include <dithering_fragment>
+                        `
+                    );
+                };
+            }
+
+            setupAnimationSystem() {
+                // Создаем сложную систему анимаций
+                this.animations = {
+                    idle: this.createIdleAnimation.bind(this),
+                    fly: this.createFlyAnimation.bind(this),
+                    attack: this.createAttackAnimation.bind(this),
+                    roar: this.createRoarAnimation.bind(this)
+                };
+
+                this.setAnimation('idle');
+            }
+
+            createIdleAnimation(time) {
+                // Дыхание
+                const breath = Math.sin(time * 2) * 0.05;
+                this.dragon.position.y = breath;
+
+                // Плавные движения головой
+                if (this.head) {
+                    this.head.rotation.y = Math.sin(time * 0.5) * 0.1;
+                    this.head.rotation.x = Math.sin(time * 0.3) * 0.05;
+                }
+
+                // Движение хвоста
+                if (this.tail) {
+                    this.tail.rotation.y = Math.sin(time * 1.5) * 0.2;
+                }
+
+                // Легкое движение крыльев
+                if (this.wings) {
+                    this.wings.rotation.x = Math.sin(time * 0.8) * 0.1;
+                }
+            }
+
+            createFlyAnimation(time) {
+                // Активные взмахи крыльев
+                const wingFlap = Math.sin(time * 8) * 0.5;
+                if (this.wings) {
+                    this.wings.rotation.x = wingFlap;
+                }
+
+                // Движение тела в полете
+                this.dragon.position.y = Math.sin(time * 2) * 0.3 + 2;
+                this.dragon.rotation.x = Math.sin(time) * 0.1;
+
+                // Активное движение хвоста для руления
+                if (this.tail) {
+                    this.tail.rotation.y = Math.sin(time * 3) * 0.3;
+                }
+            }
+
+            createAttackAnimation(time) {
+                // Резкие движения для атаки
+                const attackMove = Math.sin(time * 10) * 0.2;
+                this.dragon.position.x = attackMove;
+
+                // Открытие пасти
+                if (this.lowerJaw) {
+                    this.lowerJaw.rotation.x = Math.sin(time * 15) * 0.3 - 0.2;
+                }
+
+                // Быстрые взмахи крыльев
+                if (this.wings) {
+                    this.wings.rotation.x = Math.sin(time * 15) * 0.3;
+                }
+            }
+
+            createRoarAnimation(time) {
+                // Широкое открытие пасти
+                if (this.lowerJaw) {
+                    this.lowerJaw.rotation.x = -0.5;
+                }
+
+                // Поднятие головы
+                if (this.head) {
+                    this.head.rotation.x = -0.3;
+                }
+
+                // Дрожание тела
+                this.dragon.position.y = Math.sin(time * 20) * 0.05;
+            }
+
+            setAnimation(name) {
+                this.currentAnimation = name;
+                document.getElementById('animation').textContent = name;
+
+                // Сброс анимации при смене
+                if (this.lowerJaw) {
+                    this.lowerJaw.rotation.x = 0;
+                }
+            }
+
+            createBreathEffect() {
+                if (!this.breathParticles) {
+                    const particleCount = 100;
+                    const particles = new THREE.BufferGeometry();
+                    const positions = new Float32Array(particleCount * 3);
+                    const colors = new Float32Array(particleCount * 3);
+
+                    for (let i = 0; i < particleCount; i++) {
+                        const i3 = i * 3;
+                        positions[i3] = (Math.random() - 0.5) * 0.5;
+                        positions[i3 + 1] = (Math.random() - 0.5) * 0.5;
+                        positions[i3 + 2] = (Math.random() - 0.5) * 0.5;
+
+                        colors[i3] = 1.0;     // R
+                        colors[i3 + 1] = 0.3; // G  
+                        colors[i3 + 2] = 0.0; // B
+                    }
+
+                    particles.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+                    particles.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+                    const particleMaterial = new THREE.PointsMaterial({
+                        size: 0.1,
+                        vertexColors: true,
+                        transparent: true,
+                        opacity: 0.8
+                    });
+
+                    this.breathParticles = new THREE.Points(particles, particleMaterial);
+                    this.breathParticles.position.set(0, 0.7, 3.5);
+                    this.dragon.add(this.breathParticles);
+                }
+
+                this.breathParticles.visible = this.breathActive;
+                this.breathLight.visible = this.breathActive;
+
+                if (this.breathActive) {
+                    this.breathLight.intensity = 2 + Math.sin(this.clock.getElapsedTime() * 10);
+                }
+            }
+
+            createEnvironment() {
+                // Скалистый ландшафт
+                const terrainGeometry = new THREE.PlaneGeometry(50, 50, 32, 32);
+                terrainGeometry.rotateX(-Math.PI / 2);
+
+                // Создаем процедурные горы
+                const positions = terrainGeometry.attributes.position.array;
+                for (let i = 0; i < positions.length; i += 3) {
+                    const x = positions[i];
+                    const z = positions[i + 2];
+                    const distance = Math.sqrt(x * x + z * z);
+                    positions[i + 1] = Math.sin(x * 0.2) * Math.cos(z * 0.2) * 2;
+                }
+                terrainGeometry.attributes.position.needsUpdate = true;
+                terrainGeometry.computeVertexNormals();
+
+                const terrainMaterial = new THREE.MeshStandardMaterial({
+                    color: 0x333333,
+                    metalness: 0.1,
+                    roughness: 0.8
+                });
+
+                const terrain = new THREE.Mesh(terrainGeometry, terrainMaterial);
+                terrain.receiveShadow = true;
+                this.scene.add(terrain);
+
+                // Туман для атмосферы
+                this.scene.fog = new THREE.Fog(0x0c1445, 10, 50);
+            }
+
+            setupPostProcessing() {
+                // Блум для магических эффектов
+                this.bloomPass = new THREE.UnrealBloomPass(
+                    new THREE.Vector2(window.innerWidth, window.innerHeight),
+                    1.5, 0.4, 0.85
+                );
+
+                this.composer = new THREE.EffectComposer(this.renderer);
+                this.composer.addPass(new THREE.RenderPass(this.scene, this.camera));
+                this.composer.addPass(this.bloomPass);
+            }
+
+            setupStats() {
+                this.stats = {
+                    frames: 0,
+                    lastTime: performance.now(),
+                    fps: 60
+                };
+            }
+
+            updateStats() {
+                this.stats.frames++;
+                const currentTime = performance.now();
+
+                if (currentTime >= this.stats.lastTime + 1000) {
+                    this.stats.fps = Math.round((this.stats.frames * 1000) / (currentTime - this.stats.lastTime));
+                    this.stats.frames = 0;
+                    this.stats.lastTime = currentTime;
+
+                    document.getElementById('fps').textContent = this.stats.fps;
+
+                    // Примерное количество треугольников
+                    let triangles = 0;
+                    this.scene.traverse((child) => {
+                        if (child.isMesh) {
+                            triangles += child.geometry.index ? child.geometry.index.count / 3 : child.geometry.attributes.position.count / 3;
+                        }
+                    });
+                    document.getElementById('triangles').textContent = triangles;
+                }
+            }
+
+            animate() {
+                requestAnimationFrame(() => this.animate());
+
+                const delta = this.clock.getDelta();
+                const time = this.clock.getElapsedTime();
+
+                // Обновление анимации
+                if (this.animations[this.currentAnimation]) {
+                    this.animations[this.currentAnimation](time);
+                }
+
+                // Эффект дыхания
+                this.createBreathEffect();
+
+                // Обновление контролов
+                this.controls.update();
+
+                // Статистика
+                this.updateStats();
+
+                // Рендер
+                this.composer.render();
+            }
+
+            onWindowResize() {
+                this.camera.aspect = window.innerWidth / window.innerHeight;
+                this.camera.updateProjectionMatrix();
+                this.renderer.setSize(window.innerWidth, window.innerHeight);
+                this.composer.setSize(window.innerWidth, window.innerHeight);
+            }
+        }
+
+        // 🎮 Глобальные функции управления
+        let dragonSystem = new LivingDragon();
+
+        function setAnimation(animation) {
+            dragonSystem.setAnimation(animation);
+        }
+
+        function toggleBreath() {
+            dragonSystem.breathActive = !dragonSystem.breathActive;
+        }
+
+        // Автоматическая демонстрация анимаций
+        let demoIndex = 0;
+        const demoAnimations = ['idle', 'fly', 'attack', 'roar'];
+
+        setInterval(() => {
+            if (dragonSystem.currentAnimation === 'idle') {
+                demoIndex = (demoIndex + 1) % demoAnimations.length;
+                setAnimation(demoAnimations[demoIndex]);
+
+                setTimeout(() => {
+                    setAnimation('idle');
+                }, 3000);
+            }
+        }, 8000);
+
+    </script>
+</body>
+
+</html>
