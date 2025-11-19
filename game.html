@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Космический Йода</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #1a1a2e, #16213e);
+            color: #fff;
+            font-family: 'Arial', sans-serif;
+            text-align: center;
+        }
+
+        .pet-container {
+            width: 300px;
+            height: 300px;
+            margin: 20px auto;
+            position: relative;
+        }
+
+        .pet {
+            width: 200px;
+            height: 200px;
+            background: #4ecdc4;
+            border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+            position: relative;
+            margin: 50px auto;
+            animation: float 3s ease-in-out infinite;
+        }
+
+        .eyes {
+            position: absolute;
+            top: 60px;
+            width: 100%;
+            display: flex;
+            justify-content: space-around;
+        }
+
+        .eye {
+            width: 30px;
+            height: 40px;
+            background: #000;
+            border-radius: 50%;
+        }
+
+        .mouth {
+            position: absolute;
+            bottom: 50px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 40px;
+            height: 20px;
+            background: #ff6b6b;
+            border-radius: 0 0 20px 20px;
+        }
+
+        .ears {
+            position: absolute;
+            top: -20px;
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .ear {
+            width: 40px;
+            height: 60px;
+            background: #4ecdc4;
+            border-radius: 50%;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin: 20px auto;
+            max-width: 300px;
+        }
+
+        .stat {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 10px;
+            border-radius: 10px;
+        }
+
+        .buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin: 20px auto;
+            max-width: 300px;
+        }
+
+        button {
+            background: #ff6b6b;
+            border: none;
+            padding: 15px;
+            border-radius: 10px;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        button:hover {
+            transform: scale(1.05);
+        }
+
+        button:active {
+            transform: scale(0.95);
+        }
+
+        @keyframes float {
+
+            0%,
+            100% {
+                transform: translateY(0);
+            }
+
+            50% {
+                transform: translateY(-10px);
+            }
+        }
+
+        .happy {
+            background: #4ecdc4;
+        }
+
+        .hungry {
+            background: #ff9e44;
+        }
+
+        .sleepy {
+            background: #45b7d1;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>🌟 Космический Йода 🌟</h1>
+
+    <div class="pet-container">
+        <div class="pet" id="pet">
+            <div class="ears">
+                <div class="ear left-ear"></div>
+                <div class="ear right-ear"></div>
+            </div>
+            <div class="eyes">
+                <div class="eye left-eye"></div>
+                <div class="eye right-eye"></div>
+            </div>
+            <div class="mouth"></div>
+        </div>
+    </div>
+
+    <div class="stats">
+        <div class="stat">🍖 Голод: <span id="hunger">50</span>%</div>
+        <div class="stat">😊 Настроение: <span id="happiness">70</span>%</div>
+        <div class="stat">💤 Энергия: <span id="energy">80</span>%</div>
+        <div class="stat">✨ Чистота: <span id="cleanliness">60</span>%</div>
+    </div>
+
+    <div class="buttons">
+        <button onclick="feed()">🍖 Покормить</button>
+        <button onclick="play()">🎮 Играть</button>
+        <button onclick="sleep()">💤 Уложить спать</button>
+        <button onclick="clean()">✨ Почистить</button>
+    </div>
+
+    <div id="message"></div>
+
+    <script>
+        class CosmicPet {
+            constructor() {
+                this.hunger = 50;
+                this.happiness = 70;
+                this.energy = 80;
+                this.cleanliness = 60;
+                this.lastUpdate = Date.now();
+                this.mood = 'happy';
+            }
+
+            update() {
+                const now = Date.now();
+                const hoursPassed = (now - this.lastUpdate) / (1000 * 60 * 60);
+
+                if (hoursPassed > 0.1) { // Обновляем каждые 6 минут
+                    this.hunger = Math.max(0, this.hunger - 10 * hoursPassed);
+                    this.happiness = Math.max(0, this.happiness - 5 * hoursPassed);
+                    this.energy = Math.max(0, this.energy - 8 * hoursPassed);
+                    this.cleanliness = Math.max(0, this.cleanliness - 7 * hoursPassed);
+                    this.lastUpdate = now;
+                }
+
+                this.updateMood();
+            }
+
+            updateMood() {
+                if (this.hunger < 30) this.mood = 'hungry';
+                else if (this.energy < 30) this.mood = 'sleepy';
+                else this.mood = 'happy';
+            }
+
+            feed() {
+                this.hunger = Math.min(100, this.hunger + 30);
+                this.cleanliness = Math.max(0, this.cleanliness - 5);
+                this.updateMood();
+            }
+
+            play() {
+                this.happiness = Math.min(100, this.happiness + 25);
+                this.energy = Math.max(0, this.energy - 15);
+                this.updateMood();
+            }
+
+            sleep() {
+                this.energy = Math.min(100, this.energy + 40);
+                this.hunger = Math.max(0, this.hunger - 10);
+                this.updateMood();
+            }
+
+            clean() {
+                this.cleanliness = Math.min(100, this.cleanliness + 35);
+                this.happiness = Math.min(100, this.happiness + 10);
+                this.updateMood();
+            }
+        }
+
+        const pet = new CosmicPet();
+        const petElement = document.getElementById('pet');
+
+        function updateDisplay() {
+            document.getElementById('hunger').textContent = Math.round(pet.hunger);
+            document.getElementById('happiness').textContent = Math.round(pet.happiness);
+            document.getElementById('energy').textContent = Math.round(pet.energy);
+            document.getElementById('cleanliness').textContent = Math.round(pet.cleanliness);
+
+            petElement.className = 'pet ' + pet.mood;
+        }
+
+        function feed() {
+            pet.feed();
+            showMessage('Йода покормлен! 🍖');
+            updateDisplay();
+        }
+
+        function play() {
+            pet.play();
+            showMessage('Йода играет! 🎮');
+            updateDisplay();
+        }
+
+        function sleep() {
+            pet.sleep();
+            showMessage('Йода спит... 💤');
+            updateDisplay();
+        }
+
+        function clean() {
+            pet.clean();
+            showMessage('Йода чистенький! ✨');
+            updateDisplay();
+        }
+
+        function showMessage(text) {
+            const messageElement = document.getElementById('message');
+            messageElement.textContent = text;
+            messageElement.style.opacity = '1';
+
+            setTimeout(() => {
+                messageElement.style.opacity = '0';
+            }, 2000);
+        }
+
+        // Обновляем состояние каждую секунду
+        setInterval(() => {
+            pet.update();
+            updateDisplay();
+        }, 1000);
+
+        // Инициализация
+        updateDisplay();
+    </script>
+</body>
+
+</html>
